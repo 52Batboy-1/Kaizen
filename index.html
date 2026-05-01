@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kaizen</title>
+  <style>
+    :root {
+      --bg:      #0A0A0F;
+      --card:    #13131A;
+      --card2:   #1A1A24;
+      --border:  rgba(255,255,255,0.08);
+      --gold:    #F59E0B;
+      --golddim: rgba(245,158,11,0.55);
+      --text:    #F1F1F3;
+      --muted:   rgba(241,241,243,0.45);
+      --green:   #4ADE80;
+      --red:     #F87171;
+      --blue:    #60A5FA;
+      --streak:  #FB923C;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { display: flex; align-items: baseline; gap: 0; }
+    .logo-k    { font-size: 28px; font-weight: 900; color: var(--gold); letter-spacing: -1px; }
+    .logo-rest { font-size: 28px; font-weight: 900; color: var(--text); letter-spacing: -1px; }
+    .logo-sub  { font-size: 10px; letter-spacing: 3px; color: var(--golddim); text-transform: uppercase; margin-left: 10px; }
+    .refresh-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--gold);
+      font-size: 18px;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .refresh-btn:hover { background: rgba(245,158,11,0.1); }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      flex: 1;
+      padding: 10px 0;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .tab.active {
+      border-color: rgba(245,158,11,0.5);
+      background: rgba(245,158,11,0.1);
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    /* ── Content ── */
+    .content {
+      padding: 16px 24px 40px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .card-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .card-date { font-size: 11px; color: var(--muted); }
+    .card-text { font-size: 14px; line-height: 1.5; color: var(--text); }
+    .card-title { font-size: 15px; font-weight: 700; color: var(--text); }
+    .card-desc  { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .tag {
+      background: rgba(245,158,11,0.1);
+      color: var(--golddim);
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 100px;
+    }
+
+    .mood-pill {
+      font-size: 10px;
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+
+    .badge {
+      font-size: 10px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-weight: 700;
+    }
+    .badge-active    { background: rgba(96,165,250,0.15); color: var(--blue); }
+    .badge-completed { background: rgba(74,222,128,0.15); color: var(--green); }
+    .badge-paused    { background: rgba(241,241,243,0.08); color: var(--muted); }
+
+    .deadline { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+
+    .count { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+
+    .section-label {
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      color: var(--golddim);
+      text-transform: uppercase;
+      margin: 16px 0 8px;
+    }
+
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      padding: 60px 0;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 1; }
+    }
+
+    .win-icon {
+      width: 44px; height: 44px;
+      background: rgba(251,146,60,0.15);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .win-body { flex: 1; }
+    .card-row-win { display: flex; align-items: center; gap: 12px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:baseline;gap:8px">
+    <div class="logo">
+      <span class="logo-k">K</span><span class="logo-rest">aizen</span>
+    </div>
+    <span class="logo-sub">Companion</span>
+  </div>
+  <button class="refresh-btn" onclick="loadAll()" title="Refresh">↻</button>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('journal')">📓 Journal</div>
+  <div class="tab"        onclick="switchTab('goals')">🎯 Goals</div>
+  <div class="tab"        onclick="switchTab('wins')">🏆 Wins</div>
+</div>
+
+<div class="content">
+  <div id="panel-journal" class="panel active"></div>
+  <div id="panel-goals"   class="panel"></div>
+  <div id="panel-wins"    class="panel"></div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://iygpfvthdgzxthjnwfym.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5Z3BmdnRoZGd6eHRoam53ZnltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTEzNjgsImV4cCI6MjA5MzIyNzM2OH0.JRNfs7Oa6G8OHX7S7XCh7W-q0haCvQY5T1TpQm7p3DY';
+
+  const MOOD_EMOJI  = ['😔','😐','🙂','😄','🔥'];
+  const MOOD_COLOR  = ['#F87171','#FACC15','#60A5FA','#4ADE80','#FF9F43'];
+
+  async function fetchTable(table, order = 'updated_at.desc') {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?order=${order}&limit=100`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    if (!res.ok) throw new Error(`${table} fetch failed: ${res.status}`);
+    return res.json();
+  }
+
+  function fmtDate(str) {
+    if (!str) return '';
+    try {
+      return new Date(str).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    } catch { return str; }
+  }
+
+  function loading() {
+    return `<div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  }
+
+  function renderJournal(entries) {
+    if (!entries.length) return `
+      <div class="empty">
+        <div class="empty-icon">📓</div>
+        <div class="empty-title">No entries yet</div>
+        <div>Open the app to start journaling.</div>
+      </div>`;
+
+    return `<div class="count">${entries.length} entr${entries.length !== 1 ? 'ies' : 'y'}</div>` +
+      entries.map(e => {
+        const mood  = Math.max(0, Math.min(4, (e.mood || 3) - 1));
+        const mColor = MOOD_COLOR[mood];
+        const tags  = (e.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+        return `
+          <div class="card" style="border-color:${mColor}33">
+            <div class="card-row">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:18px">${MOOD_EMOJI[mood]}</span>
+                <span class="card-date">${fmtDate(e.date)}</span>
+              </div>
+              <span class="mood-pill" style="background:${mColor}22;color:${mColor}">${MOOD_EMOJI[mood]}</span>
+            </div>
+            <div class="card-text">${escHtml(e.text)}</div>
+            ${tags.length ? `<div class="tags">${tags.slice(0,5).map(t => `<span class="tag">#${escHtml(t)}</span>`).join('')}</div>` : ''}
+          </div>`;
+      }).join('');
+  }
+
+  function renderGoals(goals) {
+    if (!goals.length) return `
+      <div class="empty">
+        <div class="empty-icon">🎯</div>
+        <div class="empty-title">No goals yet</div>
+        <div>Open the app to set a goal.</div>
+      </div>`;
+
+    const active    = goals.filter(g => g.status === 'ACTIVE');
+    const completed = goals.filter(g => g.status === 'COMPLETED');
+    const paused    = goals.filter(g => g.status === 'PAUSED');
+
+    let html = `<div class="count">${active.length} active · ${completed.length} completed</div>`;
+
+    function goalCard(g) {
+      const isComp = g.status === 'COMPLETED';
+      const badge  = g.status === 'ACTIVE'     ? `<span class="badge badge-active">ACTIVE</span>`
+                   : g.status === 'COMPLETED'  ? `<span class="badge badge-completed">DONE ✓</span>`
+                                               : `<span class="badge badge-paused">PAUSED</span>`;
+      return `
+        <div class="card">
+          <div class="card-row">
+            <span class="card-title" style="${isComp ? 'text-decoration:line-through;color:var(--muted)' : ''}">${escHtml(g.title)}</span>
+            ${badge}
+          </div>
+          ${g.description ? `<div class="card-desc">${escHtml(g.description)}</div>` : ''}
+          ${g.target_date ? `<div class="deadline">📅 By ${fmtDate(g.target_date)}</div>` : ''}
+        </div>`;
+    }
+
+    if (active.length)    html += `<div class="section-label">Active</div>` + active.map(goalCard).join('');
+    if (completed.length) html += `<div class="section-label">Completed</div>` + completed.map(goalCard).join('');
+    if (paused.length)    html += `<div class="section-label">Paused</div>` + paused.map(goalCard).join('');
+
+    return html;
+  }
+
+  function renderWins(wins) {
+    if (!wins.length) return `
+      <div class="empty">
+        <div class="empty-icon">🏆</div>
+        <div class="empty-title">No wins logged yet</div>
+        <div>Open the app to log a win.</div>
+      </div>`;
+
+    return `<div class="count">${wins.length} win${wins.length !== 1 ? 's' : ''}</div>` +
+      wins.map(w => `
+        <div class="card">
+          <div class="card-row-win">
+            <div class="win-icon">🏆</div>
+            <div class="win-body">
+              <div class="card-title">${escHtml(w.title)}</div>
+              ${w.description ? `<div class="card-desc">${escHtml(w.description)}</div>` : ''}
+              <div class="card-date" style="margin-top:4px">${fmtDate(w.date)}</div>
+            </div>
+          </div>
+        </div>`
+      ).join('');
+  }
+
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function loadAll() {
+    document.getElementById('panel-journal').innerHTML = loading();
+    document.getElementById('panel-goals').innerHTML   = loading();
+    document.getElementById('panel-wins').innerHTML    = loading();
+    try {
+      const [journal, goals, wins] = await Promise.all([
+        fetchTable('journal_entries', 'date.desc'),
+        fetchTable('goals',           'updated_at.desc'),
+        fetchTable('wins',            'date.desc'),
+      ]);
+      document.getElementById('panel-journal').innerHTML = renderJournal(journal);
+      document.getElementById('panel-goals').innerHTML   = renderGoals(goals);
+      document.getElementById('panel-wins').innerHTML    = renderWins(wins);
+    } catch (err) {
+      const msg = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Couldn't load data</div><div>${err.message}</div></div>`;
+      document.getElementById('panel-journal').innerHTML = msg;
+      document.getElementById('panel-goals').innerHTML   = msg;
+      document.getElementById('panel-wins').innerHTML    = msg;
+    }
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      const names = ['journal','goals','wins'];
+      t.classList.toggle('active', names[i] === name);
+    });
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`panel-${name}`).classList.add('active');
+  }
+
+  loadAll();
+</script>
+</body>
+</html>
