@@ -180,7 +180,7 @@ fun MuscleMapCard(
 enum class BodyView { FRONT, BACK }
 
 @Composable
-private fun BodyCanvas(
+internal fun BodyCanvas(
     view: BodyView,
     highlights: List<MuscleHighlight>,
     alpha: Float,

@@ -44,6 +44,7 @@ object SupabaseSync {
             put("title",       win.title)
             put("description", win.description)
             put("date",        win.date)
+            put("type",        win.type.name)
             put("updated_at",  win.updatedAt)
         }
     )

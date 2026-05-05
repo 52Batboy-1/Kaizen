@@ -303,23 +303,34 @@
     if (!wins.length) return `
       <div class="empty">
         <div class="empty-icon">🏆</div>
-        <div class="empty-title">No wins logged yet</div>
-        <div>Open the app to log a win.</div>
+        <div class="empty-title">Nothing logged yet</div>
+        <div>Open the app to log a win or lesson.</div>
       </div>`;
 
-    return `<div class="count">${wins.length} win${wins.length !== 1 ? 's' : ''}</div>` +
-      wins.map(w => `
+    const winsOnly    = wins.filter(w => (w.type || 'WIN') === 'WIN');
+    const lessons     = wins.filter(w => w.type === 'LOSS');
+
+    function winCard(w) {
+      const isWin = (w.type || 'WIN') === 'WIN';
+      const icon  = isWin ? '🏆' : '📖';
+      const color = isWin ? 'var(--streak)' : 'var(--blue)';
+      return `
         <div class="card">
           <div class="card-row-win">
-            <div class="win-icon">🏆</div>
+            <div class="win-icon" style="background:${color}22">${icon}</div>
             <div class="win-body">
               <div class="card-title">${escHtml(w.title)}</div>
               ${w.description ? `<div class="card-desc">${escHtml(w.description)}</div>` : ''}
               <div class="card-date" style="margin-top:4px">${fmtDate(w.date)}</div>
             </div>
           </div>
-        </div>`
-      ).join('');
+        </div>`;
+    }
+
+    let html = `<div class="count">${winsOnly.length} win${winsOnly.length !== 1 ? 's' : ''} · ${lessons.length} lesson${lessons.length !== 1 ? 's' : ''}</div>`;
+    if (winsOnly.length)  html += `<div class="section-label">Wins</div>` + winsOnly.map(winCard).join('');
+    if (lessons.length)   html += `<div class="section-label">Lessons Learned</div>` + lessons.map(winCard).join('');
+    return html;
   }
 
   function escHtml(str) {

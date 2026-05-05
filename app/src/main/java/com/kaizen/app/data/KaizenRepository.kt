@@ -17,7 +17,7 @@ import java.time.LocalDate
         Goal::class,
         Win::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 @TypeConverters(KaizenConverters::class)
@@ -84,8 +84,8 @@ class KaizenRepository(private val dao: KaizenDao) {
         else dao.insertSleepEntry(SleepEntry(date = date, hoursSlept = hoursSlept, hrv = hrv, quality = quality, notes = notes))
     }
 
-    suspend fun logInjury(bodyPart: BodyPart, side: InjurySide, type: InjuryType, severity: Int, notes: String) =
-        dao.insertInjury(InjuryLog(date = LocalDate.now().toString(), bodyPart = bodyPart, side = side, type = type, severity = severity, notes = notes))
+    suspend fun logInjury(bodyPart: BodyPart, side: InjurySide, type: InjuryType, severity: Int, notes: String, date: String = LocalDate.now().toString()) =
+        dao.insertInjury(InjuryLog(date = date, bodyPart = bodyPart, side = side, type = type, severity = severity, notes = notes))
     suspend fun resolveInjury(injury: InjuryLog) =
         dao.updateInjury(injury.copy(resolved = true, resolvedDate = LocalDate.now().toString()))
     suspend fun updateInjury(injury: InjuryLog) = dao.updateInjury(injury)
@@ -124,8 +124,8 @@ class KaizenRepository(private val dao: KaizenDao) {
         SupabaseSync.deleteGoal(goal.remoteId)
     }
 
-    suspend fun addWin(title: String, description: String) {
-        val win = Win(title = title, description = description, date = LocalDate.now().toString())
+    suspend fun addWin(title: String, description: String, type: WinType = WinType.WIN) {
+        val win = Win(title = title, description = description, date = LocalDate.now().toString(), type = type)
         dao.insertWin(win)
         SupabaseSync.upsertWin(win)
     }

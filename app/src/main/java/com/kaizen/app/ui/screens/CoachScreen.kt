@@ -63,6 +63,7 @@ fun CoachScreen(
     onDeleteGoal: (Goal) -> Unit,
     onWinTitle: (String) -> Unit,
     onWinDescription: (String) -> Unit,
+    onWinType: (WinType) -> Unit,
     onSubmitWin: () -> Unit,
     onOpenAddWin: () -> Unit,
     onDismissWin: () -> Unit,
@@ -193,6 +194,7 @@ fun CoachScreen(
                 form      = winForm,
                 onTitle   = onWinTitle,
                 onDesc    = onWinDescription,
+                onType    = onWinType,
                 onSubmit  = onSubmitWin,
                 onDismiss = onDismissWin,
             )
@@ -686,6 +688,9 @@ private fun WinsTab(
     onAdd: () -> Unit,
     onDelete: (Win) -> Unit,
 ) {
+    val wins    = state.wins.filter { it.type == WinType.WIN }
+    val lessons = state.wins.filter { it.type == WinType.LOSS }
+
     LazyColumn(
         contentPadding      = PaddingValues(start = 22.dp, top = 0.dp, end = 22.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -696,14 +701,17 @@ private fun WinsTab(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically,
             ) {
-                Text("${state.wins.size} win${if (state.wins.size != 1) "s" else ""}", color = K.Muted, fontSize = 13.sp)
+                Text(
+                    "${wins.size} win${if (wins.size != 1) "s" else ""} · ${lessons.size} lesson${if (lessons.size != 1) "s" else ""}",
+                    color = K.Muted, fontSize = 13.sp,
+                )
                 Button(
                     onClick        = onAdd,
                     shape          = RoundedCornerShape(100.dp),
                     colors         = ButtonDefaults.buttonColors(containerColor = K.Gold, contentColor = Color(0xFF1A0E00)),
                     contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
                 ) {
-                    Text("+ Win", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("+ Log", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
                 }
             }
         }
@@ -713,13 +721,23 @@ private fun WinsTab(
                 Box(Modifier.fillMaxWidth().padding(vertical = 60.dp), Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("🏆", fontSize = 48.sp)
-                        Text("No wins logged yet", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = K.Text)
-                        Text("Log a win to celebrate progress.", fontSize = 12.sp, color = K.Muted)
+                        Text("Nothing logged yet", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = K.Text)
+                        Text("Log a win or a lesson learned.", fontSize = 12.sp, color = K.Muted)
                     }
                 }
             }
-        } else {
-            items(state.wins, key = { it.id }) { win ->
+        }
+
+        if (wins.isNotEmpty()) {
+            item { SectionLabel("WINS") }
+            items(wins, key = { it.id }) { win ->
+                WinCard(win, onDelete = { onDelete(win) })
+            }
+        }
+
+        if (lessons.isNotEmpty()) {
+            item { SectionLabel("LESSONS LEARNED") }
+            items(lessons, key = { it.id }) { win ->
                 WinCard(win, onDelete = { onDelete(win) })
             }
         }
@@ -729,16 +747,20 @@ private fun WinsTab(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun WinCard(win: Win, onDelete: () -> Unit) {
-    val date = runCatching { LocalDate.parse(win.date).format(DateTimeFormatter.ofPattern("EEE, MMM d")) }.getOrElse { win.date }
+    val date    = runCatching { LocalDate.parse(win.date).format(DateTimeFormatter.ofPattern("EEE, MMM d")) }.getOrElse { win.date }
+    val isWin   = win.type == WinType.WIN
+    val accent  = if (isWin) K.Streak else Color(0xFF60A5FA)
+    val icon    = if (isWin) "🏆" else "📖"
+
     Surface(
         modifier = Modifier.fillMaxWidth().combinedClickable(onClick = {}, onLongClick = onDelete),
         shape    = RoundedCornerShape(16.dp),
         color    = K.Card,
-        border   = BorderStroke(1.dp, K.Streak.copy(0.35f)),
+        border   = BorderStroke(1.dp, accent.copy(0.35f)),
     ) {
         Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Surface(shape = RoundedCornerShape(10.dp), color = K.Streak.copy(0.15f), modifier = Modifier.size(44.dp)) {
-                Box(contentAlignment = Alignment.Center) { Text("🏆", fontSize = 22.sp) }
+            Surface(shape = RoundedCornerShape(10.dp), color = accent.copy(0.15f), modifier = Modifier.size(44.dp)) {
+                Box(contentAlignment = Alignment.Center) { Text(icon, fontSize = 22.sp) }
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(win.title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = K.Text)
@@ -869,17 +891,53 @@ private fun WinSheet(
     form: WinForm,
     onTitle: (String) -> Unit,
     onDesc: (String) -> Unit,
+    onType: (WinType) -> Unit,
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val isWin     = form.type == WinType.WIN
+    val accent    = if (isWin) K.Streak else Color(0xFF60A5FA)
+    val labelText = if (isWin) "Log a Win 🏆" else "Log a Lesson 📖"
+
     Column(
         modifier            = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("Log a Win 🏆", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = K.Text)
+        Text(labelText, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = K.Text)
 
-        SheetField("WIN", form.title, onTitle, "e.g. First strict pull-up!", singleLine = true)
-        SheetField("DETAILS (optional)", form.description, onDesc, "What made it special...", minHeight = 60.dp)
+        // Win / Lesson toggle
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(WinType.WIN to "🏆 Win", WinType.LOSS to "📖 Lesson").forEach { (t, lbl) ->
+                val sel    = form.type == t
+                val tColor = if (t == WinType.WIN) K.Streak else Color(0xFF60A5FA)
+                Surface(
+                    modifier = Modifier.weight(1f).clickable { onType(t) },
+                    shape    = RoundedCornerShape(12.dp),
+                    color    = if (sel) tColor.copy(0.15f) else K.Card2,
+                    border   = BorderStroke(1.dp, if (sel) tColor.copy(0.6f) else K.Border),
+                ) {
+                    Text(
+                        lbl,
+                        modifier   = Modifier.padding(vertical = 10.dp),
+                        textAlign  = TextAlign.Center,
+                        fontSize   = 13.sp,
+                        fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal,
+                        color      = if (sel) tColor else K.Muted,
+                    )
+                }
+            }
+        }
+
+        SheetField(
+            if (isWin) "WIN" else "LESSON",
+            form.title, onTitle,
+            if (isWin) "e.g. First strict pull-up!" else "e.g. Skipped rest day — regretted it",
+            singleLine = true,
+        )
+        SheetField("DETAILS (optional)", form.description, onDesc,
+            if (isWin) "What made it special..." else "What I'd do differently...",
+            minHeight = 60.dp,
+        )
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, K.Border)) {
@@ -889,9 +947,9 @@ private fun WinSheet(
                 onClick  = onSubmit,
                 modifier = Modifier.weight(1f),
                 shape    = RoundedCornerShape(12.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = K.Streak, contentColor = Color.Black),
+                colors   = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color.Black),
                 enabled  = form.title.isNotBlank(),
-            ) { Text("Log Win", fontWeight = FontWeight.Bold) }
+            ) { Text(if (isWin) "Log Win" else "Log Lesson", fontWeight = FontWeight.Bold) }
         }
     }
 }

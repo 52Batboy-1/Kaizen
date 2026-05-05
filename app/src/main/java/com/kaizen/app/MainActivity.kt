@@ -26,7 +26,9 @@ import com.kaizen.app.ui.*
 import com.kaizen.app.ui.screens.*
 import com.kaizen.app.ui.theme.*
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,6 +56,14 @@ fun KaizenApp(repo: KaizenRepository, prefs: UserPrefs) {
     val chatInput   by vm.chatInput.collectAsStateWithLifecycle()
     var activeTab by remember { mutableStateOf(Tab.TODAY) }
     val dateLabel = remember { LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMM d")) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            val slot = if (LocalTime.now().hour >= 17) TimeSlot.EVENING else TimeSlot.MORNING
+            vm.selectSlot(slot)
+            delay(60_000L)
+        }
+    }
 
     if (!state.onboardingDone) {
         OnboardingScreen(onComplete = { name, week -> vm.completeOnboarding(name, week) })
@@ -125,6 +135,7 @@ fun KaizenApp(repo: KaizenRepository, prefs: UserPrefs) {
                     onDeleteGoal      = { vm.deleteGoal(it) },
                     onWinTitle        = { vm.winTitle(it) },
                     onWinDescription  = { vm.winDescription(it) },
+                    onWinType         = { vm.winType(it) },
                     onSubmitWin       = { vm.submitWin() },
                     onOpenAddWin      = { vm.openAddWin() },
                     onDismissWin      = { vm.dismissWin() },
@@ -147,7 +158,7 @@ fun KaizenApp(repo: KaizenRepository, prefs: UserPrefs) {
 
     if (state.showInjurySheet) {
         AddInjurySheet(
-            onSubmit  = { bp, side, type, sev, notes -> vm.logInjury(bp, side, type, sev, notes) },
+            onSubmit  = { bp, side, type, sev, notes, date -> vm.logInjury(bp, side, type, sev, notes, date) },
             onDismiss = { vm.closeInjurySheet() },
         )
     }

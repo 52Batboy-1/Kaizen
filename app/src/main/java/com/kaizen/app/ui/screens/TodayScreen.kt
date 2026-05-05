@@ -69,10 +69,11 @@ fun TodayScreen(
         // ── 1b. Injury status
         item {
             InjuryStatusCard(
-                activeInjuries = state.activeInjuries,
-                onAddInjury    = onAddInjury,
-                onResolve      = onResolveInjury,
-                modifier       = Modifier.fillMaxWidth(),
+                activeInjuries   = state.activeInjuries,
+                resolvedInjuries = state.allInjuries.filter { it.resolved },
+                onAddInjury      = onAddInjury,
+                onResolve        = onResolveInjury,
+                modifier         = Modifier.fillMaxWidth(),
             )
         }
 

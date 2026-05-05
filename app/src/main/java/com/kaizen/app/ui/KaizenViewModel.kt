@@ -13,7 +13,7 @@ data class ChatMessage(val role: String, val content: String)
 
 data class JournalForm(val text: String = "", val mood: Int = 3, val tags: String = "")
 data class GoalForm(val title: String = "", val description: String = "", val targetDate: String = "")
-data class WinForm(val title: String = "", val description: String = "")
+data class WinForm(val title: String = "", val description: String = "", val type: WinType = WinType.WIN)
 
 data class KaizenUiState(
     val habits: List<HabitWithCompletions>      = emptyList(),
@@ -33,6 +33,7 @@ data class KaizenUiState(
     val bodyweightEntries: List<BodyweightEntry> = emptyList(),
     val sleepEntries: List<SleepEntry>           = emptyList(),
     val activeInjuries: List<InjuryLog>          = emptyList(),
+    val allInjuries: List<InjuryLog>             = emptyList(),
     val showInjurySheet: Boolean                 = false,
     val onboardingDone: Boolean                  = false,
     val currentWeek: Int                         = 1,
@@ -113,6 +114,7 @@ class KaizenViewModel(private val repo: KaizenRepository, private val prefs: Use
         viewModelScope.launch { repo.bodyweightEntries.collect { v -> _state.update { it.copy(bodyweightEntries = v) } } }
         viewModelScope.launch { repo.sleepEntries.collect      { v -> _state.update { it.copy(sleepEntries = v) } } }
         viewModelScope.launch { repo.activeInjuries.collect    { v -> _state.update { it.copy(activeInjuries = v) } } }
+        viewModelScope.launch { repo.allInjuries.collect       { v -> _state.update { it.copy(allInjuries = v) } } }
         viewModelScope.launch { repo.journalEntries.collect    { v -> _state.update { it.copy(journalEntries = v) } } }
         viewModelScope.launch { repo.goals.collect             { v -> _state.update { it.copy(goals = v) } } }
         viewModelScope.launch { repo.wins.collect              { v -> _state.update { it.copy(wins = v) } } }
@@ -199,8 +201,8 @@ class KaizenViewModel(private val repo: KaizenRepository, private val prefs: Use
 
     fun openInjurySheet()  = _state.update { it.copy(showInjurySheet = true) }
     fun closeInjurySheet() = _state.update { it.copy(showInjurySheet = false) }
-    fun logInjury(bodyPart: BodyPart, side: InjurySide, type: InjuryType, severity: Int, notes: String) {
-        viewModelScope.launch { repo.logInjury(bodyPart, side, type, severity, notes) }
+    fun logInjury(bodyPart: BodyPart, side: InjurySide, type: InjuryType, severity: Int, notes: String, date: String) {
+        viewModelScope.launch { repo.logInjury(bodyPart, side, type, severity, notes, date) }
         closeInjurySheet()
     }
     fun resolveInjury(injury: InjuryLog) = viewModelScope.launch { repo.resolveInjury(injury) }
@@ -274,6 +276,7 @@ class KaizenViewModel(private val repo: KaizenRepository, private val prefs: Use
 
     fun winTitle(v: String)       = _winForm.update { it.copy(title = v) }
     fun winDescription(v: String) = _winForm.update { it.copy(description = v) }
+    fun winType(v: WinType)       = _winForm.update { it.copy(type = v) }
     fun openAddWin()              = _state.update { it.copy(showAddWin = true) }
     fun dismissWin() {
         _state.update { it.copy(showAddWin = false) }
@@ -282,7 +285,7 @@ class KaizenViewModel(private val repo: KaizenRepository, private val prefs: Use
     fun submitWin() {
         val f = _winForm.value; if (f.title.isBlank()) return
         viewModelScope.launch {
-            repo.addWin(f.title.trim(), f.description)
+            repo.addWin(f.title.trim(), f.description, f.type)
             dismissWin()
         }
     }

@@ -184,6 +184,8 @@ data class Goal(
 
 // ══ WINS ═══════════════════════════════════════════════════════════════════
 
+enum class WinType { WIN, LOSS }
+
 @Entity(tableName = "wins")
 data class Win(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -191,6 +193,7 @@ data class Win(
     val title: String,
     val description: String = "",
     val date: String,
+    val type: WinType = WinType.WIN,
     val linkedWorkoutId: Long? = null,
     val linkedHabitId: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
@@ -261,4 +264,6 @@ class KaizenConverters {
     @TypeConverter fun toInjurySide(v: InjurySide)   = v.name
     @TypeConverter fun fromInjuryType(v: String)     = InjuryType.valueOf(v)
     @TypeConverter fun toInjuryType(v: InjuryType)   = v.name
+    @TypeConverter fun fromWinType(v: String)         = WinType.valueOf(v)
+    @TypeConverter fun toWinType(v: WinType)          = v.name
 }
