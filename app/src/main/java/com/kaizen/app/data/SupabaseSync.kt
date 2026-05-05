@@ -57,21 +57,20 @@ object SupabaseSync {
     suspend fun fetchGoals()          = fetch("goals")
     suspend fun fetchWins()           = fetch("wins")
 
+    // Throws on non-2xx — callers decide whether to swallow or propagate
     private suspend fun upsert(table: String, body: JSONObject) = withContext(Dispatchers.IO) {
-        runCatching {
-            val conn = openConn("$url/rest/v1/$table", "POST").apply {
-                setRequestProperty("Prefer", "resolution=merge-duplicates,return=minimal")
-            }
-            conn.outputStream.use { it.write(JSONArray().put(body).toString().toByteArray()) }
-            conn.responseCode
+        val conn = openConn("$url/rest/v1/$table", "POST").apply {
+            setRequestProperty("Prefer", "resolution=merge-duplicates,return=minimal")
         }
+        conn.outputStream.use { it.write(JSONArray().put(body).toString().toByteArray()) }
+        val code = conn.responseCode
+        check(code in 200..299) { "upsert $table: HTTP $code" }
     }
 
     private suspend fun delete(table: String, remoteId: String) = withContext(Dispatchers.IO) {
-        runCatching {
-            val conn = openConn("$url/rest/v1/$table?remote_id=eq.$remoteId", "DELETE")
-            conn.responseCode
-        }
+        val conn = openConn("$url/rest/v1/$table?remote_id=eq.$remoteId", "DELETE")
+        val code = conn.responseCode
+        check(code in 200..299) { "delete $table: HTTP $code" }
     }
 
     private suspend fun fetch(table: String): List<JSONObject> = withContext(Dispatchers.IO) {

@@ -94,44 +94,44 @@ class KaizenRepository(private val dao: KaizenDao) {
     suspend fun addJournal(text: String, mood: Int, tags: String) {
         val entry = JournalEntry(date = LocalDate.now().toString(), text = text, mood = mood, tags = tags)
         dao.insertJournal(entry)
-        SupabaseSync.upsertJournal(entry)
+        runCatching { SupabaseSync.upsertJournal(entry) }
     }
     suspend fun updateJournal(entry: JournalEntry) {
         dao.updateJournal(entry)
-        SupabaseSync.upsertJournal(entry)
+        runCatching { SupabaseSync.upsertJournal(entry) }
     }
     suspend fun deleteJournal(entry: JournalEntry) {
         dao.deleteJournal(entry)
-        SupabaseSync.deleteJournal(entry.remoteId)
+        runCatching { SupabaseSync.deleteJournal(entry.remoteId) }
     }
 
     suspend fun addGoal(title: String, description: String, targetDate: String) {
         val goal = Goal(title = title, description = description, targetDate = targetDate)
         dao.insertGoal(goal)
-        SupabaseSync.upsertGoal(goal)
+        runCatching { SupabaseSync.upsertGoal(goal) }
     }
     suspend fun updateGoal(goal: Goal) {
         dao.updateGoal(goal)
-        SupabaseSync.upsertGoal(goal)
+        runCatching { SupabaseSync.upsertGoal(goal) }
     }
     suspend fun completeGoal(goal: Goal) {
         val updated = goal.copy(status = GoalStatus.COMPLETED, updatedAt = System.currentTimeMillis())
         dao.updateGoal(updated)
-        SupabaseSync.upsertGoal(updated)
+        runCatching { SupabaseSync.upsertGoal(updated) }
     }
     suspend fun deleteGoal(goal: Goal) {
         dao.deleteGoal(goal)
-        SupabaseSync.deleteGoal(goal.remoteId)
+        runCatching { SupabaseSync.deleteGoal(goal.remoteId) }
     }
 
     suspend fun addWin(title: String, description: String, type: WinType = WinType.WIN) {
         val win = Win(title = title, description = description, date = LocalDate.now().toString(), type = type)
         dao.insertWin(win)
-        SupabaseSync.upsertWin(win)
+        runCatching { SupabaseSync.upsertWin(win) }
     }
     suspend fun deleteWin(win: Win) {
         dao.deleteWin(win)
-        SupabaseSync.deleteWin(win.remoteId)
+        runCatching { SupabaseSync.deleteWin(win.remoteId) }
     }
 
     suspend fun syncToCloud(journals: List<JournalEntry>, goals: List<Goal>, wins: List<Win>): Boolean =
