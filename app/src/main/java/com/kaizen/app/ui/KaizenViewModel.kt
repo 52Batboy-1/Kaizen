@@ -2,6 +2,7 @@ package com.kaizen.app.ui
 
 import androidx.lifecycle.*
 import com.kaizen.app.data.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.*
@@ -49,6 +50,8 @@ data class KaizenUiState(
     val editingGoal: Goal?                       = null,
     val chatMessages: List<ChatMessage>          = emptyList(),
     val chatLoading: Boolean                     = false,
+    val isSyncing: Boolean                       = false,
+    val syncResult: Boolean?                     = null,
 ) {
     val whoopRecovery: Int?          get() = whoopRecoveryInput.toIntOrNull()?.coerceIn(0, 100)
     val whoopStrain: Float?          get() = whoopStrainInput.toFloatOrNull()?.coerceIn(0f, 21f)
@@ -294,6 +297,20 @@ class KaizenViewModel(private val repo: KaizenRepository, private val prefs: Use
         }
     }
     fun deleteWin(win: Win) = viewModelScope.launch { repo.deleteWin(win) }
+
+    // ── Cloud sync ────────────────────────────────────────────────────────
+
+    fun syncToCloud() {
+        if (_state.value.isSyncing) return
+        viewModelScope.launch {
+            _state.update { it.copy(isSyncing = true, syncResult = null) }
+            val s  = _state.value
+            val ok = repo.syncToCloud(s.journalEntries, s.goals, s.wins)
+            _state.update { it.copy(isSyncing = false, syncResult = ok) }
+            delay(2500)
+            _state.update { it.copy(syncResult = null) }
+        }
+    }
 
     // ── Chat ──────────────────────────────────────────────────────────────
 

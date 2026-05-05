@@ -134,6 +134,13 @@ class KaizenRepository(private val dao: KaizenDao) {
         SupabaseSync.deleteWin(win.remoteId)
     }
 
+    suspend fun syncToCloud(journals: List<JournalEntry>, goals: List<Goal>, wins: List<Win>): Boolean =
+        runCatching {
+            journals.forEach { SupabaseSync.upsertJournal(it) }
+            goals.forEach   { SupabaseSync.upsertGoal(it)    }
+            wins.forEach    { SupabaseSync.upsertWin(it)     }
+        }.isSuccess
+
     suspend fun restoreFromSupabase() {
         runCatching {
             if (dao.journalCount() + dao.goalCount() + dao.winCount() > 0) return

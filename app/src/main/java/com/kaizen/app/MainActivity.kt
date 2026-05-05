@@ -140,6 +140,7 @@ fun KaizenApp(repo: KaizenRepository, prefs: UserPrefs) {
                     onOpenAddWin      = { vm.openAddWin() },
                     onDismissWin      = { vm.dismissWin() },
                     onDeleteWin       = { vm.deleteWin(it) },
+                    onSyncToCloud     = { vm.syncToCloud() },
                 )
             }
         }

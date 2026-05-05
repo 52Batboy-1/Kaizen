@@ -2,6 +2,7 @@ package com.kaizen.app.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -71,10 +72,30 @@ fun CoachScreen(
     onChatInput: (String) -> Unit,
     onSendChat: () -> Unit,
     onClearChat: () -> Unit,
+    onSyncToCloud: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var activeTab by remember { mutableStateOf(CoachTab.CHAT) }
     val uriHandler = LocalUriHandler.current
+
+    val infiniteTransition = rememberInfiniteTransition(label = "sync")
+    val spinAngle by infiniteTransition.animateFloat(
+        initialValue   = 0f,
+        targetValue    = 360f,
+        animationSpec  = infiniteRepeatable(tween(800, easing = LinearEasing)),
+        label          = "spin",
+    )
+    val syncIcon  = when {
+        state.isSyncing              -> "↻"
+        state.syncResult == true     -> "✓"
+        state.syncResult == false    -> "✗"
+        else                         -> "↑"
+    }
+    val syncColor = when {
+        state.syncResult == true     -> Color(0xFF4ADE80)
+        state.syncResult == false    -> Color(0xFFF87171)
+        else                         -> K.Muted
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
 
@@ -105,6 +126,23 @@ fun CoachScreen(
                         fontSize = 11.sp,
                         fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal,
                         color = if (sel) K.Gold else K.Muted,
+                    )
+                }
+            }
+            Surface(
+                modifier = Modifier.size(36.dp).clickable(enabled = !state.isSyncing) { onSyncToCloud() },
+                shape  = RoundedCornerShape(10.dp),
+                color  = K.Card,
+                border = BorderStroke(1.dp, if (state.syncResult != null) syncColor.copy(0.4f) else K.Border),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        syncIcon,
+                        fontSize = 16.sp,
+                        color    = syncColor,
+                        modifier = Modifier.graphicsLayer {
+                            rotationZ = if (state.isSyncing) spinAngle else 0f
+                        },
                     )
                 }
             }
