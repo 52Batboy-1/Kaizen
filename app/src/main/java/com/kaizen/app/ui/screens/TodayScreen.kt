@@ -44,6 +44,10 @@ fun TodayScreen(
     onAddInjury: () -> Unit,
     onResolveInjury: (InjuryLog) -> Unit,
     onAddHabit: () -> Unit,
+    onRequestGarminConnect: () -> Unit,
+    onRefreshGarmin: () -> Unit,
+    onBodyBattery: (Int?) -> Unit,
+    onStressScore: (Int?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val today = state.today
@@ -66,7 +70,21 @@ fun TodayScreen(
         }
 
 
-        // ── 1b. Injury status
+        // ── 1b. Garmin card
+        item {
+            GarminCard(
+                entry       = state.garminEntry,
+                isConnected = state.garminConnected,
+                isLoading   = state.isLoadingGarmin,
+                onBodyBattery = onBodyBattery,
+                onStressScore = onStressScore,
+                onRefresh   = onRefreshGarmin,
+                onConnect   = onRequestGarminConnect,
+                modifier    = Modifier.fillMaxWidth(),
+            )
+        }
+
+        // ── 1c. Injury status
         item {
             InjuryStatusCard(
                 activeInjuries   = state.activeInjuries,

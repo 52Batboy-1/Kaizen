@@ -245,6 +245,19 @@ data class InjuryLog(
     val loggedAt: Long = System.currentTimeMillis(),
 )
 
+// ══ GARMIN ════════════════════════════════════════════════════════════════
+
+@Entity(tableName = "garmin_entries")
+data class GarminEntry(
+    @PrimaryKey(autoGenerate = false) val date: String,
+    val bodyBattery: Int?  = null,   // manual, 0–100
+    val stressScore: Int?  = null,   // manual, 0–100
+    val steps: Int?        = null,   // Health Connect
+    val restingHr: Int?    = null,   // Health Connect
+    val hrv: Float?        = null,   // Health Connect (RMSSD ms)
+    val updatedAt: Long    = System.currentTimeMillis(),
+)
+
 // ══ TYPE CONVERTERS ═══════════════════════════════════════════════════════
 
 class KaizenConverters {

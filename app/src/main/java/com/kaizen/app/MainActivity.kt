@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.health.connect.client.PermissionController
 import com.kaizen.app.data.*
 import com.kaizen.app.ui.*
 import com.kaizen.app.ui.screens.*
@@ -34,10 +37,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val db    = KaizenDatabase.getInstance(this)
-        val repo  = KaizenRepository(db.dao())
-        val prefs = UserPrefs(this)
-        setContent { KaizenTheme { KaizenApp(repo = repo, prefs = prefs) } }
+        val db           = KaizenDatabase.getInstance(this)
+        val repo         = KaizenRepository(db.dao())
+        val prefs        = UserPrefs(this)
+        val healthConnect = HealthConnectManager(this)
+        setContent { KaizenTheme { KaizenApp(repo = repo, prefs = prefs, healthConnect = healthConnect) } }
     }
 }
 
@@ -46,8 +50,12 @@ private enum class Tab(val label: String, val icon: String) {
 }
 
 @Composable
-fun KaizenApp(repo: KaizenRepository, prefs: UserPrefs) {
-    val vm: KaizenViewModel = viewModel(factory = KaizenViewModelFactory(repo, prefs))
+fun KaizenApp(repo: KaizenRepository, prefs: UserPrefs, healthConnect: HealthConnectManager) {
+    val vm: KaizenViewModel = viewModel(factory = KaizenViewModelFactory(repo, prefs, healthConnect))
+
+    val garminPermLauncher = rememberLauncherForActivityResult(
+        PermissionController.createRequestPermissionResultContract()
+    ) { _ -> vm.onGarminPermissionsGranted() }
     val state       by vm.state.collectAsStateWithLifecycle()
     val form        by vm.form.collectAsStateWithLifecycle()
     val journalForm by vm.journalForm.collectAsStateWithLifecycle()
@@ -89,9 +97,13 @@ fun KaizenApp(repo: KaizenRepository, prefs: UserPrefs) {
                     onStrainChange    = { vm.setWhoopStrain(it) },
                     onSuggestedChange = { vm.setWhoopSuggestedStrain(it) },
                     onEditHabit       = { vm.openEditHabit(it) },
-                    onAddInjury       = { vm.openInjurySheet() },
-                    onResolveInjury   = { inj -> vm.resolveInjury(inj) },
-                    onAddHabit        = { vm.openAddHabit() },
+                    onAddInjury             = { vm.openInjurySheet() },
+                    onResolveInjury         = { inj -> vm.resolveInjury(inj) },
+                    onAddHabit              = { vm.openAddHabit() },
+                    onRequestGarminConnect  = { garminPermLauncher.launch(vm.garminPermissions) },
+                    onRefreshGarmin         = { vm.refreshGarminData() },
+                    onBodyBattery           = { vm.saveBodyBattery(it) },
+                    onStressScore           = { vm.saveStressScore(it) },
                 )
                 Tab.WORKOUTS -> WorkoutsScreen(
                     state          = state,

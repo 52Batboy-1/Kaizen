@@ -2,6 +2,8 @@ package com.kaizen.app.ui
 
 import androidx.lifecycle.*
 import com.kaizen.app.data.*
+import com.kaizen.app.data.GarminEntry
+import com.kaizen.app.data.HealthConnectManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -52,6 +54,9 @@ data class KaizenUiState(
     val chatLoading: Boolean                     = false,
     val isSyncing: Boolean                       = false,
     val syncResult: Boolean?                     = null,
+    val garminEntry: GarminEntry?                = null,
+    val garminConnected: Boolean                 = false,
+    val isLoadingGarmin: Boolean                 = false,
 ) {
     val whoopRecovery: Int?          get() = whoopRecoveryInput.toIntOrNull()?.coerceIn(0, 100)
     val whoopStrain: Float?          get() = whoopStrainInput.toFloatOrNull()?.coerceIn(0f, 21f)
@@ -86,7 +91,11 @@ fun scheduledWorkoutForDate(date: String): WorkoutType? {
     return rotation[((dayOffset % rotation.size) + rotation.size) % rotation.size]
 }
 
-class KaizenViewModel(private val repo: KaizenRepository, private val prefs: UserPrefs) : ViewModel() {
+class KaizenViewModel(
+    private val repo: KaizenRepository,
+    private val prefs: UserPrefs,
+    private val hcm: HealthConnectManager,
+) : ViewModel() {
 
     private val _state       = MutableStateFlow(KaizenUiState())
     val state: StateFlow<KaizenUiState> = _state.asStateFlow()
@@ -125,6 +134,12 @@ class KaizenViewModel(private val repo: KaizenRepository, private val prefs: Use
         viewModelScope.launch {
             _state.first { !it.isLoading }
             repo.restoreFromSupabase()
+        }
+        viewModelScope.launch { repo.garminEntryToday.collect { v -> _state.update { it.copy(garminEntry = v) } } }
+        viewModelScope.launch {
+            val connected = hcm.isAvailable() && hcm.hasPermissions()
+            _state.update { it.copy(garminConnected = connected) }
+            if (connected) refreshGarminData()
         }
     }
 
@@ -298,6 +313,50 @@ class KaizenViewModel(private val repo: KaizenRepository, private val prefs: Use
     }
     fun deleteWin(win: Win) = viewModelScope.launch { repo.deleteWin(win) }
 
+    // ── Garmin / Health Connect ───────────────────────────────────────────
+
+    val garminPermissions get() = hcm.permissions
+
+    fun onGarminPermissionsGranted() {
+        _state.update { it.copy(garminConnected = true) }
+        refreshGarminData()
+    }
+
+    fun refreshGarminData() {
+        viewModelScope.launch {
+            if (!hcm.isAvailable() || !hcm.hasPermissions()) {
+                _state.update { it.copy(garminConnected = false) }
+                return@launch
+            }
+            _state.update { it.copy(isLoadingGarmin = true, garminConnected = true) }
+            val data  = hcm.readTodayData()
+            val today = LocalDate.now().toString()
+            val cur   = repo.garminEntryOnce(today) ?: GarminEntry(date = today)
+            repo.saveGarminEntry(cur.copy(
+                steps     = data.steps     ?: cur.steps,
+                restingHr = data.restingHr ?: cur.restingHr,
+                hrv       = data.hrv       ?: cur.hrv,
+            ))
+            _state.update { it.copy(isLoadingGarmin = false) }
+        }
+    }
+
+    fun saveBodyBattery(value: Int?) {
+        viewModelScope.launch {
+            val today = LocalDate.now().toString()
+            val cur   = _state.value.garminEntry ?: GarminEntry(date = today)
+            repo.saveGarminEntry(cur.copy(bodyBattery = value))
+        }
+    }
+
+    fun saveStressScore(value: Int?) {
+        viewModelScope.launch {
+            val today = LocalDate.now().toString()
+            val cur   = _state.value.garminEntry ?: GarminEntry(date = today)
+            repo.saveGarminEntry(cur.copy(stressScore = value))
+        }
+    }
+
     // ── Cloud sync ────────────────────────────────────────────────────────
 
     fun syncToCloud() {
@@ -358,7 +417,11 @@ class KaizenViewModel(private val repo: KaizenRepository, private val prefs: Use
     }
 }
 
-class KaizenViewModelFactory(private val repo: KaizenRepository, private val prefs: UserPrefs) : ViewModelProvider.Factory {
+class KaizenViewModelFactory(
+    private val repo: KaizenRepository,
+    private val prefs: UserPrefs,
+    private val hcm: HealthConnectManager,
+) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>) = KaizenViewModel(repo, prefs) as T
+    override fun <T : ViewModel> create(modelClass: Class<T>) = KaizenViewModel(repo, prefs, hcm) as T
 }

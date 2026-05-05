@@ -116,6 +116,16 @@ interface KaizenDao {
 
     @Delete  suspend fun deleteWin(win: Win)
 
+    // ── Garmin ────────────────────────────────────────────────────────────
+    @Query("SELECT * FROM garmin_entries WHERE date = :date LIMIT 1")
+    fun garminForDate(date: String): Flow<GarminEntry?>
+
+    @Query("SELECT * FROM garmin_entries WHERE date = :date LIMIT 1")
+    suspend fun garminForDateOnce(date: String): GarminEntry?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertGarminEntry(entry: GarminEntry)
+
     // ── Cloud restore counts ───────────────────────────────────────────────
     @Query("SELECT COUNT(*) FROM journal_entries")
     suspend fun journalCount(): Int

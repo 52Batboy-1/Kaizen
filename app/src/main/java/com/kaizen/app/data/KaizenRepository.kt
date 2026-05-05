@@ -16,8 +16,9 @@ import java.time.LocalDate
         JournalEntry::class,
         Goal::class,
         Win::class,
+        GarminEntry::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 @TypeConverters(KaizenConverters::class)
@@ -133,6 +134,11 @@ class KaizenRepository(private val dao: KaizenDao) {
         dao.deleteWin(win)
         runCatching { SupabaseSync.deleteWin(win.remoteId) }
     }
+
+    val garminEntryToday: Flow<GarminEntry?> = dao.garminForDate(LocalDate.now().toString())
+
+    suspend fun saveGarminEntry(entry: GarminEntry) = dao.upsertGarminEntry(entry)
+    suspend fun garminEntryOnce(date: String): GarminEntry? = dao.garminForDateOnce(date)
 
     suspend fun syncToCloud(journals: List<JournalEntry>, goals: List<Goal>, wins: List<Win>): Boolean =
         runCatching {
