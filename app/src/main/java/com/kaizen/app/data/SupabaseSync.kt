@@ -53,6 +53,10 @@ object SupabaseSync {
     suspend fun deleteGoal(remoteId: String)    = delete("goals", remoteId)
     suspend fun deleteWin(remoteId: String)     = delete("wins", remoteId)
 
+    suspend fun fetchJournalEntries() = fetch("journal_entries")
+    suspend fun fetchGoals()          = fetch("goals")
+    suspend fun fetchWins()           = fetch("wins")
+
     private suspend fun upsert(table: String, body: JSONObject) = withContext(Dispatchers.IO) {
         runCatching {
             val conn = openConn("$url/rest/v1/$table", "POST").apply {
@@ -68,6 +72,21 @@ object SupabaseSync {
             val conn = openConn("$url/rest/v1/$table?remote_id=eq.$remoteId", "DELETE")
             conn.responseCode
         }
+    }
+
+    private suspend fun fetch(table: String): List<JSONObject> = withContext(Dispatchers.IO) {
+        runCatching {
+            val conn = (URL("$url/rest/v1/$table?order=updated_at.desc&limit=500").openConnection() as HttpsURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 8000
+                readTimeout    = 15000
+                setRequestProperty("apikey",        key)
+                setRequestProperty("Authorization", "Bearer $key")
+            }
+            val body = conn.inputStream.bufferedReader().readText()
+            val arr  = JSONArray(body)
+            (0 until arr.length()).map { arr.getJSONObject(it) }
+        }.getOrElse { emptyList() }
     }
 
     private fun openConn(endpoint: String, method: String): HttpsURLConnection =

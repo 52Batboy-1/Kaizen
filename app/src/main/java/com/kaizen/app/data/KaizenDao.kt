@@ -115,4 +115,14 @@ interface KaizenDao {
     suspend fun insertWin(win: Win): Long
 
     @Delete  suspend fun deleteWin(win: Win)
+
+    // ── Cloud restore counts ───────────────────────────────────────────────
+    @Query("SELECT COUNT(*) FROM journal_entries")
+    suspend fun journalCount(): Int
+
+    @Query("SELECT COUNT(*) FROM goals")
+    suspend fun goalCount(): Int
+
+    @Query("SELECT COUNT(*) FROM wins")
+    suspend fun winCount(): Int
 }

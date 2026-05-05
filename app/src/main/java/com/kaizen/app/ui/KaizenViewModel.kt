@@ -119,6 +119,10 @@ class KaizenViewModel(private val repo: KaizenRepository, private val prefs: Use
         viewModelScope.launch { repo.goals.collect             { v -> _state.update { it.copy(goals = v) } } }
         viewModelScope.launch { repo.wins.collect              { v -> _state.update { it.copy(wins = v) } } }
         viewModelScope.launch { prefs.currentTier.collect      { v -> _state.update { it.copy(currentTier = v) } } }
+        viewModelScope.launch {
+            _state.first { !it.isLoading }
+            repo.restoreFromSupabase()
+        }
     }
 
     // ── Slot / Habit ──────────────────────────────────────────────────────

@@ -133,4 +133,40 @@ class KaizenRepository(private val dao: KaizenDao) {
         dao.deleteWin(win)
         SupabaseSync.deleteWin(win.remoteId)
     }
+
+    suspend fun restoreFromSupabase() {
+        runCatching {
+            if (dao.journalCount() + dao.goalCount() + dao.winCount() > 0) return
+            SupabaseSync.fetchJournalEntries().forEach { j ->
+                dao.insertJournal(JournalEntry(
+                    remoteId  = j.getString("remote_id"),
+                    date      = j.getString("date"),
+                    text      = j.getString("text"),
+                    mood      = j.optInt("mood", 3),
+                    tags      = j.optString("tags", ""),
+                    updatedAt = j.optLong("updated_at", System.currentTimeMillis()),
+                ))
+            }
+            SupabaseSync.fetchGoals().forEach { g ->
+                dao.insertGoal(Goal(
+                    remoteId    = g.getString("remote_id"),
+                    title       = g.getString("title"),
+                    description = g.optString("description", ""),
+                    targetDate  = g.optString("target_date", ""),
+                    status      = runCatching { GoalStatus.valueOf(g.getString("status")) }.getOrElse { GoalStatus.ACTIVE },
+                    updatedAt   = g.optLong("updated_at", System.currentTimeMillis()),
+                ))
+            }
+            SupabaseSync.fetchWins().forEach { w ->
+                dao.insertWin(Win(
+                    remoteId    = w.getString("remote_id"),
+                    title       = w.getString("title"),
+                    description = w.optString("description", ""),
+                    date        = w.getString("date"),
+                    type        = runCatching { WinType.valueOf(w.optString("type", "WIN")) }.getOrElse { WinType.WIN },
+                    updatedAt   = w.optLong("updated_at", System.currentTimeMillis()),
+                ))
+            }
+        }
+    }
 }
