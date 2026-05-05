@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Hex grid texture (subtle) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#C9A84C"
+        android:strokeWidth="0.5"
+        android:strokeAlpha="0.08"
+        android:pathData="M54,18 L63,23 L63,33 L54,38 L45,33 L45,23 Z
+                          M54,38 L63,43 L63,53 L54,58 L45,53 L45,43 Z
+                          M36,28 L45,33 L45,43 L36,48 L27,43 L27,33 Z
+                          M72,28 L81,33 L81,43 L72,48 L63,43 L63,33 Z
+                          M36,48 L45,53 L45,63 L36,68 L27,63 L27,53 Z
+                          M72,48 L81,53 L81,63 L72,68 L63,63 L63,53 Z
+                          M54,58 L63,63 L63,73 L54,78 L45,73 L45,63 Z"/>
+
+    <!-- Gold ring accent -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#C9A84C"
+        android:strokeWidth="0.8"
+        android:strokeAlpha="0.22"
+        android:pathData="M54,20 m-34,0 a34,34 0 1,0 68,0 a34,34 0 1,0 -68,0"/>
+
+    <!-- K vertical stroke -->
+    <path
+        android:fillColor="#C9A84C"
+        android:pathData="M36,30 L36,78 L44,78 L44,30 Z"
+        android:strokeWidth="0"/>
+
+    <!-- K upper arm -->
+    <path
+        android:fillColor="#C9A84C"
+        android:pathData="M44,54 L44,31 L72,31 L72,40 L54,54 Z"
+        android:strokeWidth="0"/>
+
+    <!-- K lower arm -->
+    <path
+        android:fillColor="#C9A84C"
+        android:pathData="M44,54 L44,77 L72,77 L72,68 L54,54 Z"
+        android:strokeWidth="0"/>
+
+    <!-- Spark dot — continuous improvement -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M72,31 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0"
+        android:fillAlpha="0.9"/>
+    <path
+        android:fillColor="#C9A84C"
+        android:pathData="M72,31 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0"/>
+
+</vector>
