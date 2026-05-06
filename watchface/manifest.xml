@@ -5,16 +5,20 @@
         name="Kaizen"
         type="watchface"
         version="1.0.0"
-        minApiLevel="3.4.0">
+        minApiLevel="3.4.0"
+        entry="KaizenWatchFaceApp">
         <iq:products>
             <iq:product id="fr955"/>
             <iq:product id="fr955Solar"/>
         </iq:products>
         <iq:permissions>
+            <iq:uses-permission id="Sensor"/>
             <iq:uses-permission id="SensorHistory"/>
+            <iq:uses-permission id="UserProfile"/>
         </iq:permissions>
         <iq:languages>
             <iq:language>eng</iq:language>
         </iq:languages>
+        <iq:barrels/>
     </iq:application>
 </iq:manifest>
