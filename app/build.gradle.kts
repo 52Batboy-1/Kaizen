@@ -13,9 +13,14 @@ fun localProp(key: String): String = try {
         ?.trim() ?: ""
 } catch (e: Exception) { "" }
 
-val apiKey        = localProp("ANTHROPIC_API_KEY")
-val supabaseUrl   = localProp("SUPABASE_URL")
-val supabaseAnon  = localProp("SUPABASE_ANON_KEY")
+val apiKey               = localProp("ANTHROPIC_API_KEY")
+val supabaseUrl          = localProp("SUPABASE_URL")
+val supabaseAnon         = localProp("SUPABASE_ANON_KEY")
+// Garmin Health API — fill in local.properties when ready to enable WearableSync
+val garminConsumerKey    = localProp("GARMIN_CONSUMER_KEY")
+val garminConsumerSecret = localProp("GARMIN_CONSUMER_SECRET")
+val garminAccessToken    = localProp("GARMIN_ACCESS_TOKEN")
+val garminAccessSecret   = localProp("GARMIN_ACCESS_SECRET")
 
 android {
     namespace  = "com.kaizen.app"
@@ -28,9 +33,13 @@ android {
         versionCode   = 1
         versionName   = "1.0.0"
         vectorDrawables.useSupportLibrary = true
-        buildConfigField("String", "ANTHROPIC_API_KEY", "\"$apiKey\"")
-        buildConfigField("String", "SUPABASE_URL",      "\"$supabaseUrl\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnon\"")
+        buildConfigField("String", "ANTHROPIC_API_KEY",        "\"$apiKey\"")
+        buildConfigField("String", "SUPABASE_URL",             "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY",        "\"$supabaseAnon\"")
+        buildConfigField("String", "GARMIN_CONSUMER_KEY",    "\"$garminConsumerKey\"")
+        buildConfigField("String", "GARMIN_CONSUMER_SECRET", "\"$garminConsumerSecret\"")
+        buildConfigField("String", "GARMIN_ACCESS_TOKEN",    "\"$garminAccessToken\"")
+        buildConfigField("String", "GARMIN_ACCESS_SECRET",   "\"$garminAccessSecret\"")
     }
 
     buildTypes {

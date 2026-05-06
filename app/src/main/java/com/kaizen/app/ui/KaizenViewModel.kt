@@ -162,6 +162,8 @@ class KaizenViewModel(
             _state.update { it.copy(garminConnected = connected) }
             if (connected) refreshGarminData()
         }
+        // Garmin Health API — uncomment after enabling WearableSync.kt + KaizenRepository stub:
+        // viewModelScope.launch { repo.syncGarminFromCloud(_state.value.today) }
     }
 
     // ── Slot / Habit ──────────────────────────────────────────────────────

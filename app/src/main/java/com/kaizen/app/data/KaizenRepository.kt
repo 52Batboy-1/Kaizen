@@ -154,6 +154,12 @@ class KaizenRepository(private val dao: KaizenDao) {
     suspend fun saveGarminEntry(entry: GarminEntry) = dao.upsertGarminEntry(entry)
     suspend fun garminEntryOnce(date: String): GarminEntry? = dao.garminForDateOnce(date)
 
+    // Garmin Health API sync — uncomment WearableSync.kt body first, then enable this:
+    // suspend fun syncGarminFromCloud(date: String) {
+    //     val entry = WearableSync.syncToday(date)
+    //     if (entry != null) dao.upsertGarminEntry(entry)
+    // }
+
     suspend fun syncToCloud(habits: List<HabitWithCompletions>, journals: List<JournalEntry>, goals: List<Goal>, wins: List<Win>): Boolean =
         runCatching {
             habits.forEach  { SupabaseSync.upsertHabit(it.habit) }
