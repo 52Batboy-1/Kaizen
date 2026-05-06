@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
     <iq:application
-        id="a2b3c4d5-e6f7-8901-2345-6789abcdef01"
+        id="9677adf9-eda9-44e8-8b77-17ad3ea05af3"
         name="Kaizen"
         type="watchface"
         version="1.0.0"
