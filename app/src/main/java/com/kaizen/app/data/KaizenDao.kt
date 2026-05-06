@@ -115,6 +115,16 @@ interface KaizenDao {
     suspend fun insertWin(win: Win): Long
 
     @Delete  suspend fun deleteWin(win: Win)
+    @Update  suspend fun updateWin(win: Win)
+
+    @Query("SELECT * FROM journal_entries WHERE remoteId = :id LIMIT 1")
+    suspend fun journalByRemoteId(id: String): JournalEntry?
+
+    @Query("SELECT * FROM goals WHERE remoteId = :id LIMIT 1")
+    suspend fun goalByRemoteId(id: String): Goal?
+
+    @Query("SELECT * FROM wins WHERE remoteId = :id LIMIT 1")
+    suspend fun winByRemoteId(id: String): Win?
 
     // ── Garmin ────────────────────────────────────────────────────────────
     @Query("SELECT * FROM garmin_entries WHERE date = :date LIMIT 1")

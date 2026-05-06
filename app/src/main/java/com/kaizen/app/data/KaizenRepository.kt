@@ -147,6 +147,60 @@ class KaizenRepository(private val dao: KaizenDao) {
             wins.forEach    { SupabaseSync.upsertWin(it)     }
         }.isSuccess
 
+    suspend fun pullFromCloud(): Boolean = runCatching {
+        SupabaseSync.fetchJournalEntries().forEach { j ->
+            val remoteId  = j.getString("remote_id")
+            val updatedAt = j.optLong("updated_at", 0L)
+            val local     = dao.journalByRemoteId(remoteId)
+            if (local == null || updatedAt > local.updatedAt) {
+                val entry = JournalEntry(
+                    id        = local?.id ?: 0L,
+                    remoteId  = remoteId,
+                    date      = j.getString("date"),
+                    text      = j.getString("text"),
+                    mood      = j.optInt("mood", 3),
+                    tags      = j.optString("tags", ""),
+                    updatedAt = updatedAt,
+                )
+                if (local == null) dao.insertJournal(entry) else dao.updateJournal(entry)
+            }
+        }
+        SupabaseSync.fetchGoals().forEach { g ->
+            val remoteId  = g.getString("remote_id")
+            val updatedAt = g.optLong("updated_at", 0L)
+            val local     = dao.goalByRemoteId(remoteId)
+            if (local == null || updatedAt > local.updatedAt) {
+                val goal = Goal(
+                    id          = local?.id ?: 0L,
+                    remoteId    = remoteId,
+                    title       = g.getString("title"),
+                    description = g.optString("description", ""),
+                    targetDate  = g.optString("target_date", ""),
+                    status      = runCatching { GoalStatus.valueOf(g.getString("status")) }.getOrElse { GoalStatus.ACTIVE },
+                    updatedAt   = updatedAt,
+                )
+                if (local == null) dao.insertGoal(goal) else dao.updateGoal(goal)
+            }
+        }
+        SupabaseSync.fetchWins().forEach { w ->
+            val remoteId  = w.getString("remote_id")
+            val updatedAt = w.optLong("updated_at", 0L)
+            val local     = dao.winByRemoteId(remoteId)
+            if (local == null || updatedAt > local.updatedAt) {
+                val win = Win(
+                    id          = local?.id ?: 0L,
+                    remoteId    = remoteId,
+                    title       = w.getString("title"),
+                    description = w.optString("description", ""),
+                    date        = w.getString("date"),
+                    type        = runCatching { WinType.valueOf(w.optString("type", "WIN")) }.getOrElse { WinType.WIN },
+                    updatedAt   = updatedAt,
+                )
+                if (local == null) dao.insertWin(win) else dao.updateWin(win)
+            }
+        }
+    }.isSuccess
+
     suspend fun restoreFromSupabase() {
         runCatching {
             if (dao.journalCount() + dao.goalCount() + dao.winCount() > 0) return

@@ -84,6 +84,58 @@
     @keyframes pulse { 0%,100%{opacity:.2} 50%{opacity:1} }
     .section-label { font-size: 9px; letter-spacing: 2.5px; color: var(--golddim); text-transform: uppercase; margin: 16px 0 8px; }
 
+    /* Templates toolbar */
+    .tpl-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; gap:8px; flex-wrap:wrap; }
+    .tpl-sel-row { display:flex; gap:6px; }
+    .tpl-sel { background:var(--card2); border:1px solid var(--border); color:var(--muted); padding:7px 14px; border-radius:10px; cursor:pointer; font-size:12px; font-family:inherit; transition:all .15s; }
+    .tpl-sel.active { background:rgba(245,158,11,0.12); border-color:rgba(245,158,11,0.5); color:var(--gold); font-weight:700; }
+    .print-btn { background:var(--gold); color:#1A0E00; border:none; border-radius:10px; padding:8px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+    /* A4 template page */
+    .tpl-page { background:white; color:#1a1a1a; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; padding:14mm; max-width:210mm; margin:0 auto; min-height:277mm; box-shadow:0 4px 30px rgba(0,0,0,0.4); border-radius:4px; }
+    .tpl-header { display:flex; align-items:center; gap:14px; padding-bottom:10px; border-bottom:2.5px solid #1a1a1a; margin-bottom:14px; }
+    .tpl-logo  { font-size:34px; font-weight:900; color:#1a1a1a; line-height:1; letter-spacing:-1px; }
+    .tpl-title { font-size:19px; font-weight:800; color:#1a1a1a; }
+    .tpl-date  { font-size:11px; color:#666; margin-top:2px; }
+    .tpl-section-title { font-size:9px; letter-spacing:2.5px; text-transform:uppercase; color:#555; margin:12px 0 7px; font-weight:700; }
+    .tpl-metrics-row { display:flex; gap:6px; margin-bottom:12px; }
+    .tpl-metric { flex:1; }
+    .tpl-metric-label { font-size:8px; color:#888; letter-spacing:.8px; text-transform:uppercase; margin-bottom:3px; }
+    .tpl-metric-box { height:30px; border:1px solid #ccc; border-radius:4px; }
+    .tpl-two-col { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .tpl-cb-row { display:flex; align-items:center; gap:6px; margin-bottom:7px; }
+    .tpl-cb  { font-size:14px; color:#333; flex-shrink:0; }
+    .tpl-num { font-size:12px; font-weight:700; color:#333; flex-shrink:0; width:16px; }
+    .tpl-line { flex:1; border-bottom:1px solid #ddd; height:18px; }
+    .tpl-write-line { border-bottom:1px solid #ddd; height:24px; margin-bottom:6px; }
+    .tpl-table { width:100%; border-collapse:collapse; font-size:10px; margin-top:4px; }
+    .tpl-table th { background:#1a1a1a; color:white; padding:5px 6px; text-align:left; font-size:9px; letter-spacing:1px; }
+    .tpl-table td { border-bottom:1px solid #e5e5e5; padding:9px 6px; }
+    .tpl-table tr:nth-child(even) td { background:#f9f9f9; }
+    .tpl-goal-card { border:1px solid #e0e0e0; border-radius:6px; padding:10px 12px; margin-bottom:10px; }
+    .tpl-goal-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; gap:8px; }
+    .tpl-goal-title { font-size:14px; font-weight:700; color:#1a1a1a; }
+    .tpl-goal-date  { font-size:10px; color:#888; white-space:nowrap; }
+    .tpl-goal-desc  { font-size:11px; color:#555; margin-bottom:7px; line-height:1.4; }
+    .tpl-goal-note  { font-size:8px; letter-spacing:1.5px; text-transform:uppercase; color:#aaa; margin-bottom:4px; }
+    .tpl-completed-goal { font-size:11px; color:#999; padding:4px 0; border-bottom:1px solid #f0f0f0; }
+    .tpl-win-item { border-left:2.5px solid #e0e0e0; padding:5px 10px; margin-bottom:8px; }
+    .tpl-lesson { border-left-color:#93C5FD; }
+    .tpl-win-title { font-size:12px; font-weight:700; color:#1a1a1a; }
+    .tpl-win-desc  { font-size:10px; color:#555; margin-top:2px; line-height:1.4; }
+    .tpl-win-date  { font-size:9px; color:#bbb; margin-top:3px; }
+    .tpl-empty { font-size:11px; color:#aaa; font-style:italic; margin:4px 0 8px; }
+    .tpl-footer { text-align:center; font-size:8px; letter-spacing:3px; text-transform:uppercase; color:#ccc; margin-top:18px; padding-top:10px; border-top:1px solid #ebebeb; }
+    /* Print: hide UI chrome, show only template */
+    @media print {
+      header,.tabs,#overlay,#toast,.tpl-toolbar { display:none !important; }
+      body { background:white !important; }
+      .content { padding:0 !important; max-width:100% !important; margin:0 !important; }
+      .panel { display:none !important; }
+      #panel-templates { display:block !important; }
+      .tpl-page { box-shadow:none !important; padding:8mm; max-width:100%; margin:0; }
+      @page { size:A4 portrait; margin:6mm; }
+    }
+
     /* Modal */
     .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.78); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
     .overlay.hidden { display: none; }
@@ -140,12 +192,14 @@
   <div class="tab active" onclick="switchTab('journal')">📓 Journal</div>
   <div class="tab"        onclick="switchTab('goals')">🎯 Goals</div>
   <div class="tab"        onclick="switchTab('wins')">🏆 Wins</div>
+  <div class="tab"        onclick="switchTab('templates')">📋 Templates</div>
 </div>
 
 <div class="content">
-  <div id="panel-journal" class="panel active"></div>
-  <div id="panel-goals"   class="panel"></div>
-  <div id="panel-wins"    class="panel"></div>
+  <div id="panel-journal"   class="panel active"></div>
+  <div id="panel-goals"     class="panel"></div>
+  <div id="panel-wins"      class="panel"></div>
+  <div id="panel-templates" class="panel"></div>
 </div>
 
 <!-- Modal -->
@@ -568,16 +622,143 @@
         panelHeader(`${w.length} total`, 'Log', 'openWinModal(null)') +
         renderWins(w);
 
+      if (document.getElementById('panel-templates').classList.contains('active')) renderTemplate();
+
     } catch(err) {
       const msg = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Couldn't load data</div><div>${err.message}</div></div>`;
       ['journal','goals','wins'].forEach(id => document.getElementById(`panel-${id}`).innerHTML = msg);
     }
   }
 
+  // ── Supernote templates ────────────────────────────────────────────────────
+  let _tplType = 'daily';
+
+  function selectTemplate(type) { _tplType = type; renderTemplate(); }
+
+  function renderTemplate() {
+    const p = document.getElementById('panel-templates');
+    const toolbar = `
+      <div class="tpl-toolbar">
+        <div class="tpl-sel-row">
+          <button class="tpl-sel${_tplType==='daily'?' active':''}"   onclick="selectTemplate('daily')">📋 Daily</button>
+          <button class="tpl-sel${_tplType==='goals'?' active':''}"   onclick="selectTemplate('goals')">🎯 Goals</button>
+          <button class="tpl-sel${_tplType==='weekly'?' active':''}"  onclick="selectTemplate('weekly')">🏆 Weekly</button>
+        </div>
+        <button class="print-btn" onclick="window.print()">🖨️ Print / PDF</button>
+      </div>`;
+    const content = _tplType==='daily'  ? renderDailyTpl()
+                  : _tplType==='goals'  ? renderGoalsTpl(_goals)
+                  : renderWeeklyTpl(_wins);
+    p.innerHTML = toolbar + content;
+  }
+
+  function renderDailyTpl() {
+    const now   = new Date();
+    const day   = now.toLocaleDateString('en-US',{weekday:'long'});
+    const date  = now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    const cb    = n => Array(n).fill(0).map(()=>`<div class="tpl-cb-row"><span class="tpl-cb">□</span><div class="tpl-line"></div></div>`).join('');
+    const lines = n => Array(n).fill(0).map(()=>`<div class="tpl-write-line"></div>`).join('');
+    return `<div class="tpl-page">
+      <div class="tpl-header">
+        <div class="tpl-logo">K</div>
+        <div><div class="tpl-title">Daily Kaizen</div><div class="tpl-date">${day}, ${date}</div></div>
+      </div>
+      <div class="tpl-section-title">📊 Metrics</div>
+      <div class="tpl-metrics-row">
+        ${['Body Battery','WHOOP','HRV','Sleep','Steps'].map(m=>`<div class="tpl-metric"><div class="tpl-metric-label">${m}</div><div class="tpl-metric-box"></div></div>`).join('')}
+      </div>
+      <div class="tpl-two-col">
+        <div>
+          <div class="tpl-section-title">☀️ Morning Habits</div>${cb(6)}
+        </div>
+        <div>
+          <div class="tpl-section-title">🌙 Evening Habits</div>${cb(4)}
+          <div class="tpl-section-title" style="margin-top:10px">💊 Supplements / Meds</div>${cb(2)}
+        </div>
+      </div>
+      <div class="tpl-section-title">🏋️ Workout Log</div>
+      <table class="tpl-table">
+        <thead><tr><th>Exercise</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Notes</th></tr></thead>
+        <tbody>${Array(7).fill(0).map(()=>`<tr><td></td><td></td><td></td><td></td><td></td></tr>`).join('')}</tbody>
+      </table>
+      <div class="tpl-two-col" style="margin-top:12px">
+        <div><div class="tpl-section-title">✦ What went well</div>${lines(3)}</div>
+        <div><div class="tpl-section-title">↑ What to improve</div>${lines(3)}</div>
+      </div>
+      <div class="tpl-section-title" style="margin-top:10px">⬡ Tomorrow's 3 Priorities</div>
+      ${[1,2,3].map(n=>`<div class="tpl-cb-row"><span class="tpl-num">${n}.</span><div class="tpl-line"></div></div>`).join('')}
+      <div class="tpl-footer">kaizen · ${day.toLowerCase()} · daily discipline</div>
+    </div>`;
+  }
+
+  function renderGoalsTpl(goals) {
+    const date    = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    const active  = goals.filter(g=>g.status==='ACTIVE');
+    const done    = goals.filter(g=>g.status==='COMPLETED');
+    return `<div class="tpl-page">
+      <div class="tpl-header">
+        <div class="tpl-logo">K</div>
+        <div><div class="tpl-title">Goals Review</div><div class="tpl-date">${date}</div></div>
+      </div>
+      <div class="tpl-section-title">🎯 Active Goals (${active.length})</div>
+      ${active.length===0 ? '<p class="tpl-empty">No active goals — add some in the app.</p>' : active.map(g=>`
+        <div class="tpl-goal-card">
+          <div class="tpl-goal-header">
+            <span class="tpl-goal-title">${esc(g.title)}</span>
+            ${g.target_date?`<span class="tpl-goal-date">📅 ${fmtDate(g.target_date)}</span>`:''}
+          </div>
+          ${g.description?`<div class="tpl-goal-desc">${esc(g.description)}</div>`:''}
+          <div class="tpl-goal-note">Progress / Notes</div>
+          <div class="tpl-write-line"></div><div class="tpl-write-line"></div>
+        </div>`).join('')}
+      ${done.length>0?`<div class="tpl-section-title" style="margin-top:12px">✓ Completed</div>
+        ${done.map(g=>`<div class="tpl-completed-goal">✓ ${esc(g.title)}</div>`).join('')}`:''}
+      <div class="tpl-footer">kaizen · goal mastery</div>
+    </div>`;
+  }
+
+  function renderWeeklyTpl(wins) {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-14);
+    const recent = wins.filter(w=>new Date(w.date+'T00:00:00')>=cutoff);
+    const wOnly  = recent.filter(w=>(w.type||'WIN')==='WIN');
+    const lessons= recent.filter(w=>w.type==='LOSS');
+    const date   = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    const winCard= (w,cls='')=>`<div class="tpl-win-item${cls}">
+      <div class="tpl-win-title">${esc(w.title)}</div>
+      ${w.description?`<div class="tpl-win-desc">${esc(w.description)}</div>`:''}
+      <div class="tpl-win-date">${fmtDate(w.date)}</div></div>`;
+    const cb = n=>Array(n).fill(0).map(()=>`<div class="tpl-cb-row"><span class="tpl-cb">□</span><div class="tpl-line"></div></div>`).join('');
+    return `<div class="tpl-page">
+      <div class="tpl-header">
+        <div class="tpl-logo">K</div>
+        <div><div class="tpl-title">Weekly Review</div><div class="tpl-date">${date} · last 14 days</div></div>
+      </div>
+      <div class="tpl-two-col">
+        <div>
+          <div class="tpl-section-title">🏆 Wins (${wOnly.length})</div>
+          ${wOnly.length===0?'<p class="tpl-empty">Nothing logged</p>':wOnly.map(w=>winCard(w)).join('')}
+        </div>
+        <div>
+          <div class="tpl-section-title">📖 Lessons (${lessons.length})</div>
+          ${lessons.length===0?'<p class="tpl-empty">Nothing logged</p>':lessons.map(w=>winCard(w,' tpl-lesson')).join('')}
+        </div>
+      </div>
+      <div class="tpl-section-title" style="margin-top:14px">✦ Reflection</div>
+      ${Array(4).fill(0).map(()=>`<div class="tpl-write-line" style="margin-bottom:14px"></div>`).join('')}
+      <div class="tpl-two-col" style="margin-top:8px">
+        <div><div class="tpl-section-title">Next week's focus</div>${cb(3)}</div>
+        <div><div class="tpl-section-title">Habits to lock in</div>${cb(3)}</div>
+      </div>
+      <div class="tpl-footer">kaizen · continuous improvement</div>
+    </div>`;
+  }
+
   function switchTab(name) {
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['journal','goals','wins'][i] === name));
+    const names = ['journal','goals','wins','templates'];
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', names[i] === name));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     document.getElementById(`panel-${name}`).classList.add('active');
+    if (name === 'templates') renderTemplate();
   }
 
   loadAll();

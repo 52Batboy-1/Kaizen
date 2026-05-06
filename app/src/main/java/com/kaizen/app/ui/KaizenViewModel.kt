@@ -363,9 +363,10 @@ class KaizenViewModel(
         if (_state.value.isSyncing) return
         viewModelScope.launch {
             _state.update { it.copy(isSyncing = true, syncResult = null) }
-            val s  = _state.value
-            val ok = repo.syncToCloud(s.journalEntries, s.goals, s.wins)
-            _state.update { it.copy(isSyncing = false, syncResult = ok) }
+            val s      = _state.value
+            val pushOk = repo.syncToCloud(s.journalEntries, s.goals, s.wins)
+            val pullOk = repo.pullFromCloud()
+            _state.update { it.copy(isSyncing = false, syncResult = pushOk && pullOk) }
             delay(2500)
             _state.update { it.copy(syncResult = null) }
         }
