@@ -125,6 +125,20 @@
     .tpl-win-date  { font-size:9px; color:#bbb; margin-top:3px; }
     .tpl-empty { font-size:11px; color:#aaa; font-style:italic; margin:4px 0 8px; }
     .tpl-footer { text-align:center; font-size:8px; letter-spacing:3px; text-transform:uppercase; color:#ccc; margin-top:18px; padding-top:10px; border-top:1px solid #ebebeb; }
+    .tpl-journal-entry { border:1px solid #e8e8e8; border-radius:6px; padding:10px 12px; margin-bottom:10px; page-break-inside:avoid; }
+    .tpl-journal-meta { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+    .tpl-journal-date { font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#888; }
+    .tpl-journal-mood { font-size:14px; }
+    .tpl-journal-tags { font-size:9px; color:#aaa; margin-left:auto; font-style:italic; }
+    .tpl-journal-text { font-size:11px; color:#333; line-height:1.6; white-space:pre-wrap; }
+    .tpl-mood-row { display:flex; gap:8px; margin-bottom:12px; }
+    .tpl-mood-pill { flex:1; background:#f5f5f5; border-radius:6px; padding:8px 4px; text-align:center; }
+    .tpl-mood-pill-num { font-size:18px; font-weight:800; color:#1a1a1a; }
+    .tpl-mood-pill-label { font-size:8px; color:#888; letter-spacing:.5px; }
+    .tpl-stat-row { display:flex; gap:8px; margin-bottom:14px; }
+    .tpl-stat { flex:1; border:1px solid #e0e0e0; border-radius:6px; padding:8px 10px; text-align:center; }
+    .tpl-stat-num { font-size:22px; font-weight:800; color:#1a1a1a; }
+    .tpl-stat-label { font-size:8px; color:#888; letter-spacing:.8px; text-transform:uppercase; margin-top:2px; }
     /* Print: hide UI chrome, show only template */
     @media print {
       header,.tabs,#overlay,#toast,.tpl-toolbar { display:none !important; }
@@ -258,7 +272,7 @@
     if (!patchR.ok) {
       const body = await patchR.text().catch(() => '');
       console.error(`PATCH ${table}:`, patchR.status, body);
-      throw new Error(`Save failed: ${patchR.status}`);
+      throw new Error(`PATCH ${table} ${patchR.status}: ${body}`);
     }
     const range = patchR.headers.get('Content-Range'); // "*/1" updated, "*/0" no match
     if (range && !range.endsWith('/0')) return;
@@ -272,7 +286,7 @@
     if (!postR.ok) {
       const body = await postR.text().catch(() => '');
       console.error(`POST ${table}:`, postR.status, body);
-      throw new Error(`Save failed: ${postR.status}`);
+      throw new Error(`POST ${table} ${postR.status}: ${body}`);
     }
   }
 
@@ -669,15 +683,19 @@
     const toolbar = `
       <div class="tpl-toolbar">
         <div class="tpl-sel-row">
-          <button class="tpl-sel${_tplType==='daily'?' active':''}"   onclick="selectTemplate('daily')">📋 Daily</button>
-          <button class="tpl-sel${_tplType==='goals'?' active':''}"   onclick="selectTemplate('goals')">🎯 Goals</button>
-          <button class="tpl-sel${_tplType==='weekly'?' active':''}"  onclick="selectTemplate('weekly')">🏆 Weekly</button>
+          <button class="tpl-sel${_tplType==='daily'?' active':''}"    onclick="selectTemplate('daily')">📋 Daily</button>
+          <button class="tpl-sel${_tplType==='weekly'?' active':''}"   onclick="selectTemplate('weekly')">🏆 Weekly</button>
+          <button class="tpl-sel${_tplType==='monthly'?' active':''}"  onclick="selectTemplate('monthly')">📅 Monthly</button>
+          <button class="tpl-sel${_tplType==='goals'?' active':''}"    onclick="selectTemplate('goals')">🎯 Goals</button>
+          <button class="tpl-sel${_tplType==='journal'?' active':''}"  onclick="selectTemplate('journal')">📖 Journal</button>
         </div>
         <button class="print-btn" onclick="window.print()">🖨️ Print / PDF</button>
       </div>`;
-    const content = _tplType==='daily'  ? renderDailyTpl()
-                  : _tplType==='goals'  ? renderGoalsTpl(_goals)
-                  : renderWeeklyTpl(_wins);
+    const content = _tplType==='daily'   ? renderDailyTpl()
+                  : _tplType==='goals'   ? renderGoalsTpl(_goals)
+                  : _tplType==='weekly'  ? renderWeeklyTpl(_wins)
+                  : _tplType==='monthly' ? renderMonthlyTpl(_goals, _wins, _journal)
+                  : renderJournalTpl(_journal);
     p.innerHTML = toolbar + content;
   }
 
@@ -779,6 +797,116 @@
         <div><div class="tpl-section-title">Habits to lock in</div>${cb(3)}</div>
       </div>
       <div class="tpl-footer">kaizen · continuous improvement</div>
+    </div>`;
+  }
+
+  function renderMonthlyTpl(goals, wins, journal) {
+    const now     = new Date();
+    const y       = now.getFullYear(), m = now.getMonth();
+    const monthName = now.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+    const monthStr  = `${y}-${String(m+1).padStart(2,'0')}`;
+    const prevStr   = m===0 ? `${y-1}-12` : `${y}-${String(m).padStart(2,'0')}`;
+
+    const mWins    = wins.filter(w=>(w.date||'').startsWith(monthStr) && (w.type||'WIN')==='WIN');
+    const mLessons = wins.filter(w=>(w.date||'').startsWith(monthStr) && w.type==='LOSS');
+    const mJournal = journal.filter(j=>(j.date||'').startsWith(monthStr));
+    const pJournal = journal.filter(j=>(j.date||'').startsWith(prevStr));
+
+    const active    = goals.filter(g=>g.status==='ACTIVE');
+    const completed = goals.filter(g=>g.status==='COMPLETED');
+
+    const avgMood = arr => arr.length===0 ? null : (arr.reduce((s,j)=>s+(j.mood||3),0)/arr.length).toFixed(1);
+    const moodEmoji = v => v>=4.5?'🔥':v>=3.5?'😄':v>=2.5?'🙂':v>=1.5?'😐':'😔';
+    const curAvg = avgMood(mJournal), prevAvg = avgMood(pJournal);
+    const moodTrend = curAvg && prevAvg ? (parseFloat(curAvg)>parseFloat(prevAvg)?'↑':parseFloat(curAvg)<parseFloat(prevAvg)?'↓':'→') : '';
+
+    const moodDist = [1,2,3,4,5].map(n=>({n, count:mJournal.filter(j=>(j.mood||3)===n).length}));
+    const moodLabels = {1:'😔 Low',2:'😐 Meh',3:'🙂 OK',4:'😄 Good',5:'🔥 Fire'};
+
+    const cb  = n => Array(n).fill(0).map(()=>`<div class="tpl-cb-row"><span class="tpl-cb">□</span><div class="tpl-line"></div></div>`).join('');
+    const lines = n => Array(n).fill(0).map(()=>`<div class="tpl-write-line"></div>`).join('');
+    const winCard = (w,cls='') => `<div class="tpl-win-item${cls}">
+      <div class="tpl-win-title">${esc(w.title)}</div>
+      ${w.description?`<div class="tpl-win-desc">${esc(w.description)}</div>`:''}
+      <div class="tpl-win-date">${fmtDate(w.date)}</div></div>`;
+
+    return `<div class="tpl-page">
+      <div class="tpl-header">
+        <div class="tpl-logo">K</div>
+        <div><div class="tpl-title">Monthly Review</div><div class="tpl-date">${monthName}</div></div>
+      </div>
+
+      <div class="tpl-stat-row">
+        <div class="tpl-stat"><div class="tpl-stat-num">${mWins.length}</div><div class="tpl-stat-label">Wins</div></div>
+        <div class="tpl-stat"><div class="tpl-stat-num">${mLessons.length}</div><div class="tpl-stat-label">Lessons</div></div>
+        <div class="tpl-stat"><div class="tpl-stat-num">${mJournal.length}</div><div class="tpl-stat-label">Journal Entries</div></div>
+        <div class="tpl-stat"><div class="tpl-stat-num">${active.length}</div><div class="tpl-stat-label">Active Goals</div></div>
+        <div class="tpl-stat"><div class="tpl-stat-num">${curAvg||'—'}${moodTrend?` <span style="font-size:13px;color:#888">${moodTrend}</span>`:''}</div><div class="tpl-stat-label">Avg Mood</div></div>
+      </div>
+
+      ${mJournal.length>0?`<div class="tpl-section-title">😊 Mood Distribution</div>
+      <div class="tpl-mood-row">
+        ${moodDist.map(d=>`<div class="tpl-mood-pill"><div class="tpl-mood-pill-num">${d.count}</div><div class="tpl-mood-pill-label">${moodLabels[d.n]}</div></div>`).join('')}
+      </div>`:''}
+
+      <div class="tpl-two-col">
+        <div>
+          <div class="tpl-section-title">🏆 Wins this month (${mWins.length})</div>
+          ${mWins.length===0?'<p class="tpl-empty">Nothing logged</p>':mWins.map(w=>winCard(w)).join('')}
+        </div>
+        <div>
+          <div class="tpl-section-title">📖 Lessons this month (${mLessons.length})</div>
+          ${mLessons.length===0?'<p class="tpl-empty">Nothing logged</p>':mLessons.map(w=>winCard(w,' tpl-lesson')).join('')}
+        </div>
+      </div>
+
+      <div class="tpl-section-title" style="margin-top:12px">🎯 Goals in progress (${active.length})</div>
+      ${active.length===0?'<p class="tpl-empty">No active goals</p>':active.map(g=>`
+        <div class="tpl-goal-card">
+          <div class="tpl-goal-header">
+            <span class="tpl-goal-title">${esc(g.title)}</span>
+            ${g.target_date?`<span class="tpl-goal-date">📅 ${fmtDate(g.target_date)}</span>`:''}
+          </div>
+          ${g.description?`<div class="tpl-goal-desc">${esc(g.description)}</div>`:''}
+        </div>`).join('')}
+
+      ${completed.length>0?`<div class="tpl-section-title">✓ Goals completed (${completed.length})</div>
+        ${completed.map(g=>`<div class="tpl-completed-goal">✓ ${esc(g.title)}</div>`).join('')}`:''}
+
+      <div class="tpl-section-title" style="margin-top:14px">✦ Monthly Reflection</div>
+      ${lines(4)}
+      <div class="tpl-two-col" style="margin-top:10px">
+        <div><div class="tpl-section-title">Next month's intentions</div>${cb(4)}</div>
+        <div><div class="tpl-section-title">Habits to build</div>${cb(4)}</div>
+      </div>
+      <div class="tpl-footer">kaizen · ${monthName.toLowerCase()} · monthly review</div>
+    </div>`;
+  }
+
+  function renderJournalTpl(journal) {
+    const now      = new Date();
+    const monthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const monthName = now.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+    const entries  = journal.filter(j=>(j.date||'').startsWith(monthStr))
+                            .sort((a,b)=>a.date>b.date?1:-1);
+    const moodEmoji = n => ['','😔','😐','🙂','😄','🔥'][n]||'🙂';
+
+    return `<div class="tpl-page">
+      <div class="tpl-header">
+        <div class="tpl-logo">K</div>
+        <div><div class="tpl-title">Journal Log</div><div class="tpl-date">${monthName} · ${entries.length} ${entries.length===1?'entry':'entries'}</div></div>
+      </div>
+      ${entries.length===0?`<p class="tpl-empty" style="margin-top:16px">No journal entries for ${monthName}.</p>`
+        : entries.map(j=>`
+        <div class="tpl-journal-entry">
+          <div class="tpl-journal-meta">
+            <span class="tpl-journal-date">${fmtDate(j.date)}</span>
+            <span class="tpl-journal-mood">${moodEmoji(j.mood||3)}</span>
+            ${j.tags?`<span class="tpl-journal-tags">${esc(j.tags)}</span>`:''}
+          </div>
+          <div class="tpl-journal-text">${esc(j.text||'')}</div>
+        </div>`).join('')}
+      <div class="tpl-footer">kaizen · ${monthName.toLowerCase()} · journal</div>
     </div>`;
   }
 

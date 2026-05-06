@@ -152,9 +152,12 @@ class KaizenViewModel(
         viewModelScope.launch { repo.goals.collect             { v -> _state.update { it.copy(goals = v) } } }
         viewModelScope.launch { repo.wins.collect              { v -> _state.update { it.copy(wins = v) } } }
         viewModelScope.launch { prefs.currentTier.collect      { v -> _state.update { it.copy(currentTier = v) } } }
+        viewModelScope.launch { prefs.onboardingDone.collect   { v -> _state.update { it.copy(onboardingDone = v) } } }
+        viewModelScope.launch { prefs.userName.collect         { v -> _state.update { it.copy(userName = v) } } }
+        viewModelScope.launch { prefs.currentWeek.collect      { v -> _state.update { it.copy(currentWeek = v) } } }
         viewModelScope.launch {
             _state.first { !it.isLoading }
-            repo.restoreFromSupabase()
+            repo.pullFromCloud()
         }
         viewModelScope.launch { repo.garminEntryToday.collect { v -> _state.update { it.copy(garminEntry = v) } } }
         viewModelScope.launch {
@@ -254,8 +257,12 @@ class KaizenViewModel(
 
     // ── Onboarding / Week / Standards ─────────────────────────────────────
 
-    fun completeOnboarding(name: String, week: Int) = _state.update { it.copy(onboardingDone = true, currentWeek = week) }
-    fun setCurrentWeek(week: Int)                   = _state.update { it.copy(currentWeek = week) }
+    fun completeOnboarding(name: String, week: Int) {
+        viewModelScope.launch { prefs.completeOnboarding(name, week) }
+    }
+    fun setCurrentWeek(week: Int) {
+        viewModelScope.launch { prefs.setCurrentWeek(week) }
+    }
     fun toggleStandard(standard: String) {
         val set = _state.value.checkedStandards.toMutableSet()
         if (set.contains(standard)) set.remove(standard) else set.add(standard)
