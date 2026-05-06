@@ -83,12 +83,32 @@ data class KaizenUiState(
 
 data class AddHabitForm(val name: String = "", val category: HabitCategory = HabitCategory.HEALTH, val slot: TimeSlot = TimeSlot.MORNING)
 
-fun scheduledWorkoutForDate(date: String): WorkoutType? {
-    val epoch     = LocalDate.of(2024, 1, 1)
-    val target    = LocalDate.parse(date)
-    val dayOffset = ChronoUnit.DAYS.between(epoch, target).toInt()
-    val rotation  = listOf(WorkoutType.PUSH, WorkoutType.PULL, WorkoutType.LEGS, null)
-    return rotation[((dayOffset % rotation.size) + rotation.size) % rotation.size]
+fun scheduledWorkoutForDate(date: String, tier: KaizenTier = KaizenTier.FOUNDATION): WorkoutType? {
+    val target  = LocalDate.parse(date)
+    val dow     = target.dayOfWeek  // MONDAY=1 … SUNDAY=7
+    return when (tier) {
+        KaizenTier.FOUNDATION -> when (dow) {
+            DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY -> WorkoutType.FULL_BODY
+            else -> null
+        }
+        KaizenTier.DEVELOPMENT -> when (dow) {
+            DayOfWeek.MONDAY, DayOfWeek.THURSDAY -> WorkoutType.PUSH
+            DayOfWeek.TUESDAY, DayOfWeek.FRIDAY  -> WorkoutType.LEGS
+            else -> null
+        }
+        KaizenTier.STRENGTH -> {
+            val epoch     = LocalDate.of(2024, 1, 1)
+            val dayOffset = ChronoUnit.DAYS.between(epoch, target).toInt()
+            val rotation  = listOf(WorkoutType.PUSH, WorkoutType.PULL, WorkoutType.LEGS, null, null)
+            rotation[((dayOffset % rotation.size) + rotation.size) % rotation.size]
+        }
+        KaizenTier.MASTERY -> {
+            val epoch     = LocalDate.of(2024, 1, 1)
+            val dayOffset = ChronoUnit.DAYS.between(epoch, target).toInt()
+            val rotation  = listOf(WorkoutType.PUSH, WorkoutType.PULL, WorkoutType.LEGS, WorkoutType.FULL_BODY, null, null)
+            rotation[((dayOffset % rotation.size) + rotation.size) % rotation.size]
+        }
+    }
 }
 
 class KaizenViewModel(
@@ -400,7 +420,7 @@ class KaizenViewModel(
         val slot = _state.value.selectedSlot
         return _state.value.habits.filter { it.habit.timeSlot == slot || it.habit.timeSlot == TimeSlot.ANYTIME }
     }
-    fun scheduledWorkoutToday(): WorkoutType? = scheduledWorkoutForDate(_state.value.today)
+    fun scheduledWorkoutToday(): WorkoutType? = scheduledWorkoutForDate(_state.value.today, _state.value.currentTier)
     fun weeklyDays(): List<WeekDay> {
         val today  = LocalDate.now()
         val habits = _state.value.habits

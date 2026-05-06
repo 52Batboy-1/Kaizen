@@ -53,6 +53,18 @@ fun WorkoutType.muscleHighlights(): List<MuscleHighlight> = when (this) {
         MuscleHighlight("core",       Color(0xFFA8EDEA), 0.8f),
         MuscleHighlight("heart",      Color(0xFFF87171), 1.0f),
     )
+    WorkoutType.FULL_BODY -> listOf(
+        MuscleHighlight("chest",      Color(0xFFA78BFA), 0.6f),
+        MuscleHighlight("shoulders",  Color(0xFFA78BFA), 0.6f),
+        MuscleHighlight("triceps",    Color(0xFFA78BFA), 0.5f),
+        MuscleHighlight("lats",       Color(0xFFA78BFA), 0.6f),
+        MuscleHighlight("upper_back", Color(0xFFA78BFA), 0.6f),
+        MuscleHighlight("biceps",     Color(0xFFA78BFA), 0.5f),
+        MuscleHighlight("glutes",     Color(0xFFA78BFA), 0.6f),
+        MuscleHighlight("quads",      Color(0xFFA78BFA), 0.6f),
+        MuscleHighlight("hamstrings", Color(0xFFA78BFA), 0.5f),
+        MuscleHighlight("core",       Color(0xFFA78BFA), 0.7f),
+    )
 }
 
 // ── Composable ────────────────────────────────────────────────────────────

@@ -26,7 +26,8 @@ enum class WorkoutType(val label: String, val emoji: String, val hexColor: Strin
     PUSH("Push",    "🔺", "#FF6B6B", "Chest · Shoulders · Triceps"),
     PULL("Pull",    "🔻", "#4ECDC4", "Back · Biceps · Rear Delts"),
     LEGS("Legs",    "⬟",  "#FFE66D", "Quads · Hamstrings · Glutes"),
-    CARDIO("Cardio","⚡", "#A8EDEA", "Heart · Lungs · Full Body");
+    CARDIO("Cardio",    "⚡", "#A8EDEA", "Heart · Lungs · Full Body"),
+    FULL_BODY("Full Body","⬡", "#A78BFA", "Upper · Lower · Core · All");
 
     val coreCircuit: List<CoreExercise> get() = when (this) {
         PUSH   -> listOf(
@@ -48,6 +49,11 @@ enum class WorkoutType(val label: String, val emoji: String, val hexColor: Strin
             CoreExercise("Mountain Climber",   sets = 3, repsOrSeconds = "20/side",  cue = "Keep hips low, drive knees"),
             CoreExercise("V-Up",               sets = 3, repsOrSeconds = "15 reps",  cue = "Meet in the middle"),
             CoreExercise("Russian Twist",      sets = 3, repsOrSeconds = "20 reps",  cue = "Rotate from thoracic"),
+        )
+        FULL_BODY -> listOf(
+            CoreExercise("Dead Bug",           sets = 3, repsOrSeconds = "10/side",  cue = "Opposite arm & leg, exhale fully"),
+            CoreExercise("Plank",              sets = 3, repsOrSeconds = "45 sec",   cue = "Full body tension — squeeze everything"),
+            CoreExercise("Bird Dog",           sets = 3, repsOrSeconds = "10/side",  cue = "Squeeze glute at top, spine neutral"),
         )
     }
 }

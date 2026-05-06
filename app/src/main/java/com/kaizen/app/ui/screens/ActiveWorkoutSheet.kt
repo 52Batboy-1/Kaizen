@@ -141,6 +141,32 @@ private fun workoutExercises(type: WorkoutType, difficulty: Difficulty, sets: In
                 WExercise("Explosive Broad Jump x5","5 reps",   "Chain 5 jumps continuously. Maximum distance each time.", "→ Uphill jumps", "Full Chain Power, Cardio"),
             )
         }
+        WorkoutType.FULL_BODY -> when (difficulty) {
+            Difficulty.BEGINNER -> listOf(
+                WExercise("Squat",               "12-15 reps",   "Hips below parallel. Chest up. Squeeze glutes at top.", "→ Jump squat", "Quads, Glutes"),
+                WExercise("Push Up",             "8-12 reps",    "Full range. Proud chest. Elbows 45° — not flared.", "→ Decline push up", "Chest, Shoulders, Triceps"),
+                WExercise("Inverted Row",        "8-12 reps",    "Pull chest to bar. Squeeze shoulder blades together.", "→ Feet elevated", "Back, Biceps"),
+                WExercise("Reverse Lunge",       "10 reps/side", "Back knee hovers 1 inch from floor. Front shin stays vertical.", "→ Walking lunge", "Quads, Glutes, Hamstrings"),
+                WExercise("Dead Bug",            "8 reps/side",  "Exhale fully. Lower back pressed into floor throughout.", "→ Add resistance band", "Core", true),
+                WExercise("Glute Bridge",        "15-20 reps",   "Drive hips up, squeeze glutes hard at top. Hold 1 sec.", "→ Single leg bridge", "Glutes, Hamstrings"),
+            )
+            Difficulty.INTERMEDIATE -> listOf(
+                WExercise("Goblet Squat",        "15 reps",      "Elbows track inside knees. Full depth. Drive knees out.", "→ Pause squat", "Quads, Glutes, Core"),
+                WExercise("Push Up",             "15-25 reps",   "Continuous tension. Subtle hollow body. No elbow flare.", "→ Archer push up", "Chest, Shoulders, Triceps"),
+                WExercise("Inverted Row",        "12-15 reps",   "Feet elevated version. Pause at top — shoulder blades in.", "→ One-arm assisted", "Back, Biceps, Rear Delts"),
+                WExercise("Bulgarian Split Squat","10 reps/side","Back foot elevated. Lean torso forward ~15°. Full depth.", "→ Add weight", "Quads, Glutes, Hip Flexors"),
+                WExercise("Pike Push Up",        "10-12 reps",   "Hips high — inverted V. Elbows track back.", "→ Feet elevated", "Shoulders, Triceps"),
+                WExercise("Hollow Body Hold",    "30-45 sec",    "Lower back into floor. Arms overhead. Point toes.", "→ Add rocks", "Core", true),
+            )
+            Difficulty.ADVANCED -> listOf(
+                WExercise("Pistol Squat",        "5-8 each",     "Heel flat. Use arms for balance. Full depth. Control descent.", "→ Weighted pistol", "Quads, Glutes, Balance"),
+                WExercise("Dips",                "Failure",      "Deep range. Chest forward. Stretch reflex. Full lock-out.", "→ Weighted", "Chest, Triceps, Shoulders"),
+                WExercise("One-Arm Row",         "10 each",      "Pull elbow to ceiling. Full shoulder blade retraction.", "→ One-arm chin-up negatives", "Back, Biceps"),
+                WExercise("Jump Lunge",          "12 each leg",  "Explosive switch in the air. Stay tall. Land on heel.", "→ Add weight vest", "Quads, Glutes, Power"),
+                WExercise("Pike Push Up (Feet Elevated)","10 reps","Maximum forward lean. Head through arms at bottom.", "→ Handstand negatives", "Shoulders"),
+                WExercise("Dragon Flag",         "5-8 reps",     "Lower slowly — 3 sec descent. Full body rigid throughout.", "→ Weighted", "Core, Full Chain", true),
+            )
+        }
     }
 
     // Apply set count from Whoop scaling

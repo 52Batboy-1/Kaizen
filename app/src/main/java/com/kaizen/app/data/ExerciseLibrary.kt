@@ -436,22 +436,25 @@ object CardioExercises {
 // ══ WORKOUT-TYPE → EXERCISE MAP ══════════════════════════════════════════════
 
 fun WorkoutType.defaultExercises(): List<Exercise> = when (this) {
-    WorkoutType.PUSH   -> PushExercises.pushDay
-    WorkoutType.PULL   -> PullExercises.pullDay
-    WorkoutType.LEGS   -> LegExercises.legDay
-    WorkoutType.CARDIO -> CardioExercises.fullBodyDay
+    WorkoutType.PUSH      -> PushExercises.pushDay
+    WorkoutType.PULL      -> PullExercises.pullDay
+    WorkoutType.LEGS      -> LegExercises.legDay
+    WorkoutType.CARDIO    -> CardioExercises.fullBodyDay
+    WorkoutType.FULL_BODY -> CardioExercises.fullBodyDay
 }
 
 fun WorkoutType.beginnerExercises(): List<Exercise> = when (this) {
-    WorkoutType.PUSH   -> PushExercises.pushDayBeginner
-    WorkoutType.PULL   -> PullExercises.pullDayBeginner
-    WorkoutType.LEGS   -> LegExercises.legDayBeginner
-    WorkoutType.CARDIO -> listOf(CardioExercises.shadowBoxing, CardioExercises.hollowBodyHold, CardioExercises.burpee)
+    WorkoutType.PUSH      -> PushExercises.pushDayBeginner
+    WorkoutType.PULL      -> PullExercises.pullDayBeginner
+    WorkoutType.LEGS      -> LegExercises.legDayBeginner
+    WorkoutType.CARDIO    -> listOf(CardioExercises.shadowBoxing, CardioExercises.hollowBodyHold, CardioExercises.burpee)
+    WorkoutType.FULL_BODY -> listOf(CardioExercises.hollowBodyHold, CardioExercises.burpee, CardioExercises.mountainClimber)
 }
 
 fun WorkoutType.advancedExercises(): List<Exercise> = when (this) {
-    WorkoutType.PUSH   -> PushExercises.pushDayAdvanced
-    WorkoutType.PULL   -> PullExercises.pullDayAdvanced
-    WorkoutType.LEGS   -> LegExercises.legDayAdvanced
-    WorkoutType.CARDIO -> listOf(CardioExercises.kettlebellSwing, CardioExercises.hollowBodyHold, CardioExercises.burpee, CardioExercises.mountainClimber)
+    WorkoutType.PUSH      -> PushExercises.pushDayAdvanced
+    WorkoutType.PULL      -> PullExercises.pullDayAdvanced
+    WorkoutType.LEGS      -> LegExercises.legDayAdvanced
+    WorkoutType.CARDIO    -> listOf(CardioExercises.kettlebellSwing, CardioExercises.hollowBodyHold, CardioExercises.burpee, CardioExercises.mountainClimber)
+    WorkoutType.FULL_BODY -> listOf(CardioExercises.kettlebellSwing, CardioExercises.hollowBodyHold, CardioExercises.burpee, CardioExercises.mountainClimber)
 }
