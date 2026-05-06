@@ -73,7 +73,7 @@ object SupabaseSync {
 
     // Throws on non-2xx — callers decide whether to swallow or propagate
     private suspend fun upsert(table: String, body: JSONObject) = withContext(Dispatchers.IO) {
-        val conn = openConn("$url/rest/v1/$table", "POST").apply {
+        val conn = openConn("$url/rest/v1/$table?on_conflict=remote_id", "POST").apply {
             setRequestProperty("Prefer", "resolution=merge-duplicates,return=minimal")
         }
         conn.outputStream.use { it.write(JSONArray().put(body).toString().toByteArray()) }
