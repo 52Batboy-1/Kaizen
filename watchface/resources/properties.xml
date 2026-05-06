@@ -1,0 +1,3 @@
+<properties>
+    <property id="currentWeek" type="number">1</property>
+</properties>

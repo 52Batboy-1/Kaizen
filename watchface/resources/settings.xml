@@ -1,0 +1,30 @@
+<settings>
+    <setting propertyKey="@Properties.currentWeek" title="@Strings.SettingCurrentWeek">
+        <settingConfig type="list">
+            <listEntry value="1">1 — Foundation</listEntry>
+            <listEntry value="2">2 — Foundation</listEntry>
+            <listEntry value="3">3 — Foundation</listEntry>
+            <listEntry value="4">4 — Foundation</listEntry>
+            <listEntry value="5">5 — Foundation</listEntry>
+            <listEntry value="6">6 — Foundation</listEntry>
+            <listEntry value="7">7 — Development</listEntry>
+            <listEntry value="8">8 — Development</listEntry>
+            <listEntry value="9">9 — Development</listEntry>
+            <listEntry value="10">10 — Development</listEntry>
+            <listEntry value="11">11 — Development</listEntry>
+            <listEntry value="12">12 — Development</listEntry>
+            <listEntry value="13">13 — Strength</listEntry>
+            <listEntry value="14">14 — Strength</listEntry>
+            <listEntry value="15">15 — Strength</listEntry>
+            <listEntry value="16">16 — Strength</listEntry>
+            <listEntry value="17">17 — Strength</listEntry>
+            <listEntry value="18">18 — Strength</listEntry>
+            <listEntry value="19">19 — Mastery</listEntry>
+            <listEntry value="20">20 — Mastery</listEntry>
+            <listEntry value="21">21 — Mastery</listEntry>
+            <listEntry value="22">22 — Mastery</listEntry>
+            <listEntry value="23">23 — Mastery</listEntry>
+            <listEntry value="24">24 — Mastery</listEntry>
+        </settingConfig>
+    </setting>
+</settings>
