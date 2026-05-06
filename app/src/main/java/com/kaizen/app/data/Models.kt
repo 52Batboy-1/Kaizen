@@ -1,6 +1,7 @@
 package com.kaizen.app.data
 
 import androidx.room.*
+import java.util.UUID
 
 // ══ SHARED ENUMS ══════════════════════════════════════════════════════════
 
@@ -71,11 +72,13 @@ enum class WhoopZone(val label: String, val hexColor: String) {
 @Entity(tableName = "habits")
 data class Habit(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val remoteId: String = UUID.randomUUID().toString(),
     val name: String,
     val category: HabitCategory,
     val timeSlot: TimeSlot,
     val streak: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
 )
 
 @Entity(

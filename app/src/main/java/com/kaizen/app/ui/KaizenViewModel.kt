@@ -39,6 +39,7 @@ data class KaizenUiState(
     val allInjuries: List<InjuryLog>             = emptyList(),
     val showInjurySheet: Boolean                 = false,
     val onboardingDone: Boolean                  = false,
+    val userName: String                         = "",
     val currentWeek: Int                         = 1,
     val checkedStandards: Set<String>            = emptySet(),
     val journalEntries: List<JournalEntry>       = emptyList(),
@@ -384,7 +385,7 @@ class KaizenViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isSyncing = true, syncResult = null) }
             val s      = _state.value
-            val pushOk = repo.syncToCloud(s.journalEntries, s.goals, s.wins)
+            val pushOk = repo.syncToCloud(s.habits, s.journalEntries, s.goals, s.wins)
             val pullOk = repo.pullFromCloud()
             _state.update { it.copy(isSyncing = false, syncResult = pushOk && pullOk) }
             delay(2500)

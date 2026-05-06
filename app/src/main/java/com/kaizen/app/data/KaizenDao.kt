@@ -17,6 +17,9 @@ interface KaizenDao {
     @Update  suspend fun updateHabit(habit: Habit)
     @Delete  suspend fun deleteHabit(habit: Habit)
 
+    @Query("SELECT * FROM habits WHERE remoteId = :id LIMIT 1")
+    suspend fun habitByRemoteId(id: String): Habit?
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertHabitCompletion(c: HabitCompletion)
 

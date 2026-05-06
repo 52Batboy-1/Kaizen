@@ -18,7 +18,7 @@ import java.time.LocalDate
         Win::class,
         GarminEntry::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 @TypeConverters(KaizenConverters::class)
@@ -47,17 +47,31 @@ class KaizenRepository(private val dao: KaizenDao) {
     val goals: Flow<List<Goal>>                  = dao.goals()
     val wins: Flow<List<Win>>                    = dao.wins()
 
-    suspend fun addHabit(name: String, category: HabitCategory, slot: TimeSlot) =
-        dao.insertHabit(Habit(name = name, category = category, timeSlot = slot))
-    suspend fun updateHabit(habit: Habit) = dao.updateHabit(habit)
-    suspend fun deleteHabit(habit: Habit) = dao.deleteHabit(habit)
+    suspend fun addHabit(name: String, category: HabitCategory, slot: TimeSlot) {
+        val habit = Habit(name = name, category = category, timeSlot = slot)
+        dao.insertHabit(habit)
+        runCatching { SupabaseSync.upsertHabit(habit) }
+    }
+    suspend fun updateHabit(habit: Habit) {
+        val updated = habit.copy(updatedAt = System.currentTimeMillis())
+        dao.updateHabit(updated)
+        runCatching { SupabaseSync.upsertHabit(updated) }
+    }
+    suspend fun deleteHabit(habit: Habit) {
+        dao.deleteHabit(habit)
+        runCatching { SupabaseSync.deleteHabit(habit.remoteId) }
+    }
     suspend fun markHabitDone(habit: Habit, date: String) {
         dao.insertHabitCompletion(HabitCompletion(habit.id, date))
-        dao.updateHabit(habit.copy(streak = habit.streak + 1))
+        val updated = habit.copy(streak = habit.streak + 1, updatedAt = System.currentTimeMillis())
+        dao.updateHabit(updated)
+        runCatching { SupabaseSync.upsertHabit(updated) }
     }
     suspend fun markHabitUndone(habit: Habit, date: String) {
         dao.removeHabitCompletion(habit.id, date)
-        dao.updateHabit(habit.copy(streak = maxOf(0, habit.streak - 1)))
+        val updated = habit.copy(streak = maxOf(0, habit.streak - 1), updatedAt = System.currentTimeMillis())
+        dao.updateHabit(updated)
+        runCatching { SupabaseSync.upsertHabit(updated) }
     }
 
     suspend fun allWorkouts(): List<WorkoutLog> = dao.allWorkouts()
@@ -140,14 +154,32 @@ class KaizenRepository(private val dao: KaizenDao) {
     suspend fun saveGarminEntry(entry: GarminEntry) = dao.upsertGarminEntry(entry)
     suspend fun garminEntryOnce(date: String): GarminEntry? = dao.garminForDateOnce(date)
 
-    suspend fun syncToCloud(journals: List<JournalEntry>, goals: List<Goal>, wins: List<Win>): Boolean =
+    suspend fun syncToCloud(habits: List<HabitWithCompletions>, journals: List<JournalEntry>, goals: List<Goal>, wins: List<Win>): Boolean =
         runCatching {
+            habits.forEach  { SupabaseSync.upsertHabit(it.habit) }
             journals.forEach { SupabaseSync.upsertJournal(it) }
             goals.forEach   { SupabaseSync.upsertGoal(it)    }
             wins.forEach    { SupabaseSync.upsertWin(it)     }
         }.isSuccess
 
     suspend fun pullFromCloud(): Boolean = runCatching {
+        SupabaseSync.fetchHabits().forEach { h ->
+            val remoteId  = h.getString("remote_id")
+            val updatedAt = h.optLong("updated_at", 0L)
+            val local     = dao.habitByRemoteId(remoteId)
+            if (local == null || updatedAt > local.updatedAt) {
+                val habit = Habit(
+                    id        = local?.id ?: 0L,
+                    remoteId  = remoteId,
+                    name      = h.getString("name"),
+                    category  = runCatching { HabitCategory.valueOf(h.getString("category")) }.getOrElse { HabitCategory.HEALTH },
+                    timeSlot  = runCatching { TimeSlot.valueOf(h.getString("time_slot")) }.getOrElse { TimeSlot.ANYTIME },
+                    streak    = h.optInt("streak", 0),
+                    updatedAt = updatedAt,
+                )
+                if (local == null) dao.insertHabit(habit) else dao.updateHabit(habit)
+            }
+        }
         SupabaseSync.fetchJournalEntries().forEach { j ->
             val remoteId  = j.getString("remote_id")
             val updatedAt = j.optLong("updated_at", 0L)

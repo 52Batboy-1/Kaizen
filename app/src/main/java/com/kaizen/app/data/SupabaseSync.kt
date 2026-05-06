@@ -49,13 +49,27 @@ object SupabaseSync {
         }
     )
 
+    suspend fun upsertHabit(habit: Habit) = upsert(
+        table = "habits",
+        body  = JSONObject().apply {
+            put("remote_id",  habit.remoteId)
+            put("name",       habit.name)
+            put("category",   habit.category.name)
+            put("time_slot",  habit.timeSlot.name)
+            put("streak",     habit.streak)
+            put("updated_at", habit.updatedAt)
+        }
+    )
+
+    suspend fun deleteHabit(remoteId: String)  = delete("habits", remoteId)
     suspend fun deleteJournal(remoteId: String) = delete("journal_entries", remoteId)
     suspend fun deleteGoal(remoteId: String)    = delete("goals", remoteId)
     suspend fun deleteWin(remoteId: String)     = delete("wins", remoteId)
 
-    suspend fun fetchJournalEntries() = fetch("journal_entries")
-    suspend fun fetchGoals()          = fetch("goals")
-    suspend fun fetchWins()           = fetch("wins")
+    suspend fun fetchHabits()          = fetch("habits")
+    suspend fun fetchJournalEntries()  = fetch("journal_entries")
+    suspend fun fetchGoals()           = fetch("goals")
+    suspend fun fetchWins()            = fetch("wins")
 
     // Throws on non-2xx — callers decide whether to swallow or propagate
     private suspend fun upsert(table: String, body: JSONObject) = withContext(Dispatchers.IO) {
