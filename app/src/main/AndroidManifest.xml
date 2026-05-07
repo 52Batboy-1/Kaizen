@@ -49,6 +49,16 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- Health Connect permissions rationale (Android 12-13, required by OW SDK) -->
+        <activity-alias
+            android:name="ShowPermissionRationaleActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity-alias>
+
         <receiver
             android:name=".widget.KaizenWidgetReceiver"
             android:exported="true">

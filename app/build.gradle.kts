@@ -14,6 +14,8 @@ fun localProp(key: String): String = try {
 } catch (e: Exception) { "" }
 
 val apiKey               = localProp("ANTHROPIC_API_KEY")
+val owApiKey             = localProp("OW_API_KEY")
+val owBaseUrl            = localProp("OW_BASE_URL")
 val supabaseUrl          = localProp("SUPABASE_URL")
 val supabaseAnon         = localProp("SUPABASE_ANON_KEY")
 // Garmin Health API — fill in local.properties when ready to enable WearableSync
@@ -24,16 +26,18 @@ val garminAccessSecret   = localProp("GARMIN_ACCESS_SECRET")
 
 android {
     namespace  = "com.kaizen.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.kaizen.app"
-        minSdk        = 26
+        minSdk        = 29
         targetSdk     = 35
         versionCode   = 1
         versionName   = "1.0.0"
         vectorDrawables.useSupportLibrary = true
         buildConfigField("String", "ANTHROPIC_API_KEY",        "\"$apiKey\"")
+        buildConfigField("String", "OW_API_KEY",               "\"$owApiKey\"")
+        buildConfigField("String", "OW_BASE_URL",              "\"$owBaseUrl\"")
         buildConfigField("String", "SUPABASE_URL",             "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_ANON_KEY",        "\"$supabaseAnon\"")
         buildConfigField("String", "GARMIN_CONSUMER_KEY",    "\"$garminConsumerKey\"")
@@ -97,6 +101,7 @@ dependencies {
 
     implementation("androidx.glance:glance-appwidget:1.1.0")
     implementation("androidx.glance:glance-material3:1.1.0")
+    implementation("com.openwearables.health:sdk:0.11.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

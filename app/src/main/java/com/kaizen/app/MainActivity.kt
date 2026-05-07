@@ -37,6 +37,7 @@ import kotlinx.coroutines.launch
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.lifecycle.lifecycleScope
 import com.kaizen.app.widget.*
+import com.openwearables.health.sdk.OpenWearablesHealthSDK
 
 class MainActivity : ComponentActivity() {
 
@@ -60,6 +61,14 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // Open Wearables — set activity for permission dialogs, start background sync
+        runCatching {
+            val ow = OpenWearablesHealthSDK.getInstance()
+            ow.setActivity(this)
+            ow.setProvider("google")
+            lifecycleScope.launch { runCatching { ow.startBackgroundSync() } }
+        }
+
         lifecycleScope.launch {
             runCatching {
                 val manager = GlanceAppWidgetManager(this@MainActivity)
@@ -73,6 +82,11 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         _requestedTab.value = tabFromIntent(intent)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        runCatching { OpenWearablesHealthSDK.getInstance().setActivity(null) }
     }
 
     private fun tabFromIntent(i: Intent?) =
