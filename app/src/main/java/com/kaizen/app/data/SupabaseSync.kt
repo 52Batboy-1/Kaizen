@@ -71,14 +71,25 @@ object SupabaseSync {
     suspend fun fetchGoals()           = fetch("goals")
     suspend fun fetchWins()            = fetch("wins")
 
-    // Throws on non-2xx — callers decide whether to swallow or propagate
+    // PATCH existing row; if zero rows matched (Content-Range: */0), INSERT new row.
+    // Mirrors the web companion's approach — avoids relying on on_conflict constraint discovery.
     private suspend fun upsert(table: String, body: JSONObject) = withContext(Dispatchers.IO) {
-        val conn = openConn("$url/rest/v1/$table?on_conflict=remote_id", "POST").apply {
-            setRequestProperty("Prefer", "resolution=merge-duplicates,return=minimal")
+        val remoteId = body.getString("remote_id")
+        val patch = openConn("$url/rest/v1/$table?remote_id=eq.$remoteId", "PATCH").apply {
+            setRequestProperty("Prefer", "count=exact,return=minimal")
         }
-        conn.outputStream.use { it.write(JSONArray().put(body).toString().toByteArray()) }
-        val code = conn.responseCode
-        check(code in 200..299) { "upsert $table: HTTP $code" }
+        patch.outputStream.use { it.write(body.toString().toByteArray()) }
+        val patchCode = patch.responseCode
+        check(patchCode in 200..299) { "upsert(patch) $table: HTTP $patchCode" }
+        val range = patch.getHeaderField("Content-Range") // "*/1" = updated, "*/0" = no match
+        if (range != null && !range.endsWith("/0")) return@withContext
+
+        val post = openConn("$url/rest/v1/$table", "POST").apply {
+            setRequestProperty("Prefer", "return=minimal")
+        }
+        post.outputStream.use { it.write(JSONArray().put(body).toString().toByteArray()) }
+        val postCode = post.responseCode
+        check(postCode in 200..299) { "upsert(post) $table: HTTP $postCode" }
     }
 
     private suspend fun delete(table: String, remoteId: String) = withContext(Dispatchers.IO) {

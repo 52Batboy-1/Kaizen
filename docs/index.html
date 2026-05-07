@@ -1,924 +1,1536 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kaizen</title>
-  <style>
-    :root {
-      --bg:      #0A0A0F;
-      --card:    #13131A;
-      --card2:   #1A1A24;
-      --border:  rgba(255,255,255,0.08);
-      --gold:    #F59E0B;
-      --golddim: rgba(245,158,11,0.55);
-      --text:    #F1F1F3;
-      --muted:   rgba(241,241,243,0.45);
-      --green:   #4ADE80;
-      --red:     #F87171;
-      --blue:    #60A5FA;
-      --streak:  #FB923C;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
-
-    /* Header */
-    header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-    .logo-k    { font-size: 28px; font-weight: 900; color: var(--gold); letter-spacing: -1px; }
-    .logo-rest { font-size: 28px; font-weight: 900; color: var(--text); letter-spacing: -1px; }
-    .logo-sub  { font-size: 10px; letter-spacing: 3px; color: var(--golddim); text-transform: uppercase; margin-left: 10px; }
-    .refresh-btn { background: none; border: 1px solid var(--border); color: var(--gold); font-size: 18px; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
-    .refresh-btn:hover { background: rgba(245,158,11,0.1); }
-
-    /* Tabs */
-    .tabs { display: flex; gap: 8px; padding: 14px 24px; border-bottom: 1px solid var(--border); }
-    .tab { flex: 1; padding: 10px 0; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 12px; font-weight: 500; cursor: pointer; text-align: center; transition: all 0.15s; }
-    .tab.active { border-color: rgba(245,158,11,0.5); background: rgba(245,158,11,0.1); color: var(--gold); font-weight: 700; }
-
-    /* Content */
-    .content { padding: 16px 24px 60px; max-width: 680px; margin: 0 auto; }
-    .panel { display: none; }
-    .panel.active { display: block; }
-
-    /* Panel header */
-    .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .count-label  { font-size: 12px; color: var(--muted); }
-    .add-btn { background: var(--gold); color: #1A0E00; border: none; border-radius: 100px; padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
-    .add-btn:hover { opacity: 0.9; }
-
-    /* Cards */
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 10px; }
-    .card-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-    .card-date  { font-size: 11px; color: var(--muted); }
-    .card-text  { font-size: 14px; line-height: 1.5; color: var(--text); }
-    .card-title { font-size: 15px; font-weight: 700; color: var(--text); flex: 1; }
-    .card-desc  { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
-    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-    .tag { background: rgba(245,158,11,0.1); color: var(--golddim); font-size: 10px; padding: 2px 8px; border-radius: 100px; }
-    .mood-pill { font-size: 10px; padding: 3px 10px; border-radius: 100px; }
-    .badge { font-size: 10px; padding: 3px 10px; border-radius: 100px; font-weight: 700; white-space: nowrap; }
-    .badge-active    { background: rgba(96,165,250,0.15); color: var(--blue); }
-    .badge-completed { background: rgba(74,222,128,0.15); color: var(--green); }
-    .badge-paused    { background: rgba(241,241,243,0.08); color: var(--muted); }
-    .deadline { font-size: 10px; color: var(--muted); margin-top: 4px; }
-    .win-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
-    .win-body { flex: 1; min-width: 0; }
-    .card-row-win { display: flex; align-items: center; gap: 12px; }
-
-    /* Card action buttons */
-    .card-actions { display: flex; gap: 5px; flex-shrink: 0; margin-left: 8px; }
-    .icon-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 3px 7px; cursor: pointer; font-size: 12px; color: var(--muted); transition: all 0.15s; line-height: 1.4; font-family: inherit; }
-    .icon-btn:hover      { border-color: var(--gold); color: var(--gold); }
-    .icon-btn.del:hover  { border-color: var(--red);  color: var(--red); }
-    .done-btn { background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.3); border-radius: 8px; padding: 3px 10px; cursor: pointer; font-size: 11px; font-weight: 700; color: var(--green); font-family: inherit; }
-    .done-btn:hover { background: rgba(74,222,128,0.22); }
-
-    /* Empty / loading */
-    .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
-    .empty-icon { font-size: 48px; margin-bottom: 12px; }
-    .empty-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-    .loading { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 60px 0; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); animation: pulse 1.2s ease-in-out infinite; }
-    .dot:nth-child(2) { animation-delay: 0.2s; }
-    .dot:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes pulse { 0%,100%{opacity:.2} 50%{opacity:1} }
-    .section-label { font-size: 9px; letter-spacing: 2.5px; color: var(--golddim); text-transform: uppercase; margin: 16px 0 8px; }
-
-    /* Templates toolbar */
-    .tpl-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; gap:8px; flex-wrap:wrap; }
-    .tpl-sel-row { display:flex; gap:6px; }
-    .tpl-sel { background:var(--card2); border:1px solid var(--border); color:var(--muted); padding:7px 14px; border-radius:10px; cursor:pointer; font-size:12px; font-family:inherit; transition:all .15s; }
-    .tpl-sel.active { background:rgba(245,158,11,0.12); border-color:rgba(245,158,11,0.5); color:var(--gold); font-weight:700; }
-    .print-btn { background:var(--gold); color:#1A0E00; border:none; border-radius:10px; padding:8px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
-    /* A4 template page */
-    .tpl-page { background:white; color:#1a1a1a; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; padding:14mm; max-width:210mm; margin:0 auto; min-height:277mm; box-shadow:0 4px 30px rgba(0,0,0,0.4); border-radius:4px; }
-    .tpl-header { display:flex; align-items:center; gap:14px; padding-bottom:10px; border-bottom:2.5px solid #1a1a1a; margin-bottom:14px; }
-    .tpl-logo  { font-size:34px; font-weight:900; color:#1a1a1a; line-height:1; letter-spacing:-1px; }
-    .tpl-title { font-size:19px; font-weight:800; color:#1a1a1a; }
-    .tpl-date  { font-size:11px; color:#666; margin-top:2px; }
-    .tpl-section-title { font-size:9px; letter-spacing:2.5px; text-transform:uppercase; color:#555; margin:12px 0 7px; font-weight:700; }
-    .tpl-metrics-row { display:flex; gap:6px; margin-bottom:12px; }
-    .tpl-metric { flex:1; }
-    .tpl-metric-label { font-size:8px; color:#888; letter-spacing:.8px; text-transform:uppercase; margin-bottom:3px; }
-    .tpl-metric-box { height:30px; border:1px solid #ccc; border-radius:4px; }
-    .tpl-two-col { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-    .tpl-cb-row { display:flex; align-items:center; gap:6px; margin-bottom:7px; }
-    .tpl-cb  { font-size:14px; color:#333; flex-shrink:0; }
-    .tpl-num { font-size:12px; font-weight:700; color:#333; flex-shrink:0; width:16px; }
-    .tpl-line { flex:1; border-bottom:1px solid #ddd; height:18px; }
-    .tpl-write-line { border-bottom:1px solid #ddd; height:24px; margin-bottom:6px; }
-    .tpl-table { width:100%; border-collapse:collapse; font-size:10px; margin-top:4px; }
-    .tpl-table th { background:#1a1a1a; color:white; padding:5px 6px; text-align:left; font-size:9px; letter-spacing:1px; }
-    .tpl-table td { border-bottom:1px solid #e5e5e5; padding:9px 6px; }
-    .tpl-table tr:nth-child(even) td { background:#f9f9f9; }
-    .tpl-goal-card { border:1px solid #e0e0e0; border-radius:6px; padding:10px 12px; margin-bottom:10px; }
-    .tpl-goal-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; gap:8px; }
-    .tpl-goal-title { font-size:14px; font-weight:700; color:#1a1a1a; }
-    .tpl-goal-date  { font-size:10px; color:#888; white-space:nowrap; }
-    .tpl-goal-desc  { font-size:11px; color:#555; margin-bottom:7px; line-height:1.4; }
-    .tpl-goal-note  { font-size:8px; letter-spacing:1.5px; text-transform:uppercase; color:#aaa; margin-bottom:4px; }
-    .tpl-completed-goal { font-size:11px; color:#999; padding:4px 0; border-bottom:1px solid #f0f0f0; }
-    .tpl-win-item { border-left:2.5px solid #e0e0e0; padding:5px 10px; margin-bottom:8px; }
-    .tpl-lesson { border-left-color:#93C5FD; }
-    .tpl-win-title { font-size:12px; font-weight:700; color:#1a1a1a; }
-    .tpl-win-desc  { font-size:10px; color:#555; margin-top:2px; line-height:1.4; }
-    .tpl-win-date  { font-size:9px; color:#bbb; margin-top:3px; }
-    .tpl-empty { font-size:11px; color:#aaa; font-style:italic; margin:4px 0 8px; }
-    .tpl-footer { text-align:center; font-size:8px; letter-spacing:3px; text-transform:uppercase; color:#ccc; margin-top:18px; padding-top:10px; border-top:1px solid #ebebeb; }
-    .tpl-journal-entry { border:1px solid #e8e8e8; border-radius:6px; padding:10px 12px; margin-bottom:10px; page-break-inside:avoid; }
-    .tpl-journal-meta { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
-    .tpl-journal-date { font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#888; }
-    .tpl-journal-mood { font-size:14px; }
-    .tpl-journal-tags { font-size:9px; color:#aaa; margin-left:auto; font-style:italic; }
-    .tpl-journal-text { font-size:11px; color:#333; line-height:1.6; white-space:pre-wrap; }
-    .tpl-mood-row { display:flex; gap:8px; margin-bottom:12px; }
-    .tpl-mood-pill { flex:1; background:#f5f5f5; border-radius:6px; padding:8px 4px; text-align:center; }
-    .tpl-mood-pill-num { font-size:18px; font-weight:800; color:#1a1a1a; }
-    .tpl-mood-pill-label { font-size:8px; color:#888; letter-spacing:.5px; }
-    .tpl-stat-row { display:flex; gap:8px; margin-bottom:14px; }
-    .tpl-stat { flex:1; border:1px solid #e0e0e0; border-radius:6px; padding:8px 10px; text-align:center; }
-    .tpl-stat-num { font-size:22px; font-weight:800; color:#1a1a1a; }
-    .tpl-stat-label { font-size:8px; color:#888; letter-spacing:.8px; text-transform:uppercase; margin-top:2px; }
-    /* Print: hide UI chrome, show only template */
-    @media print {
-      header,.tabs,#overlay,#toast,.tpl-toolbar { display:none !important; }
-      body { background:white !important; }
-      .content { padding:0 !important; max-width:100% !important; margin:0 !important; }
-      .panel { display:none !important; }
-      #panel-templates { display:block !important; }
-      .tpl-page { box-shadow:none !important; padding:8mm; max-width:100%; margin:0; }
-      @page { size:A4 portrait; margin:6mm; }
-    }
-
-    /* Modal */
-    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.78); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
-    .overlay.hidden { display: none; }
-    .modal { background: var(--card); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
-    .modal-head { padding: 20px 20px 0; display: flex; align-items: center; justify-content: space-between; }
-    .modal-head h3 { font-size: 18px; font-weight: 700; }
-    .close-btn { background: none; border: 1px solid var(--border); color: var(--muted); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; font-family: inherit; }
-    .close-btn:hover { border-color: var(--red); color: var(--red); }
-    .modal-body { padding: 16px 20px 0; }
-    .form-group { margin-bottom: 16px; }
-    .form-label { display: block; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--golddim); margin-bottom: 8px; }
-    .form-input { width: 100%; background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; color: var(--text); font-size: 14px; font-family: inherit; }
-    .form-input:focus { outline: none; border-color: var(--gold); }
-    textarea.form-input { min-height: 90px; resize: vertical; }
-    input[type="date"].form-input::-webkit-calendar-picker-indicator { filter: invert(0.6); }
-
-    /* Toggle chips (win type, goal status) */
-    .toggle-row { display: flex; gap: 8px; }
-    .tog { flex: 1; padding: 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--card2); color: var(--muted); font-size: 13px; cursor: pointer; text-align: center; transition: all 0.15s; font-family: inherit; }
-    .tog.on-gold  { border-color:rgba(245,158,11,0.6);  background:rgba(245,158,11,0.12);  color:var(--gold);  font-weight:700; }
-    .tog.on-blue  { border-color:rgba(96,165,250,0.6);  background:rgba(96,165,250,0.10);  color:var(--blue);  font-weight:700; }
-    .tog.on-green { border-color:rgba(74,222,128,0.6);  background:rgba(74,222,128,0.10);  color:var(--green); font-weight:700; }
-    .tog.on-muted { border-color:rgba(241,241,243,0.2); background:rgba(241,241,243,0.05); color:var(--muted); font-weight:700; }
-
-    /* Mood picker */
-    .mood-row { display: flex; gap: 8px; }
-    .mood-btn { flex: 1; font-size: 24px; text-align: center; padding: 10px 0; border-radius: 12px; border: 1px solid var(--border); background: var(--card2); cursor: pointer; transition: all 0.12s; user-select: none; }
-    .mood-btn.on { border-color: rgba(245,158,11,0.6); background: rgba(245,158,11,0.15); }
-
-    /* Modal footer */
-    .modal-footer { display: flex; gap: 8px; padding: 16px 20px 24px; }
-    .btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }
-    .btn:hover { opacity: 0.88; }
-    .btn-primary   { background: var(--gold);   color: #1A0E00; }
-    .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--muted); }
-    .btn-danger    { background: rgba(248,113,113,0.12); color: var(--red); border: 1px solid rgba(248,113,113,0.3); flex: 0 0 auto; padding: 12px 16px; }
-
-    /* Toast */
-    .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: var(--card2); border: 1px solid rgba(245,158,11,0.35); color: var(--text); padding: 10px 22px; border-radius: 100px; font-size: 13px; z-index: 200; transition: opacity 0.3s; white-space: nowrap; }
-    .toast.hidden { opacity: 0; pointer-events: none; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kaizen — 1% Better, Every Day</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" />
+<style>
+:root {
+  --paper: #f4f0e8;
+  --paper-2: #ebe5d7;
+  --paper-3: #e0d8c5;
+  --ink: #1a1714;
+  --ink-2: #3a352c;
+  --ink-3: #6b6354;
+  --ink-4: #9a9180;
+  --rule: #c9c0a9;
+  --accent: #6b1d1d;
+  --accent-soft: #8a3838;
+  --gold: #8a6f2c;
+  --good: #3d5a3d;
+  --serif: "Newsreader", "Iowan Old Style", "Hoefler Text", Georgia, serif;
+  --mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --sans: "Geist", "Geist Sans", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --r: 2px;
+  --r-lg: 4px;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--paper);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+button {
+  font-family: inherit; color: inherit; background: transparent;
+  border: 1px solid var(--ink); padding: 8px 14px; font-size: 13px;
+  letter-spacing: 0.02em; cursor: pointer; border-radius: var(--r);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+button:hover { background: var(--ink); color: var(--paper); }
+button.ghost { border-color: var(--rule); color: var(--ink-3); }
+button.ghost:hover { background: var(--paper-2); color: var(--ink); border-color: var(--ink-3); }
+button.primary { background: var(--ink); color: var(--paper); }
+button.primary:hover { background: var(--accent); border-color: var(--accent); }
+button.danger { border-color: var(--accent); color: var(--accent); }
+button.danger:hover { background: var(--accent); color: var(--paper); }
+input, textarea, select {
+  font-family: inherit; color: inherit; background: transparent;
+  border: none; border-bottom: 1px solid var(--rule);
+  padding: 6px 0; font-size: 14px; outline: none; width: 100%;
+}
+input:focus, textarea:focus { border-bottom-color: var(--ink); }
+textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
+.app {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.sidebar {
+  border-right: 1px solid var(--rule);
+  padding: 32px 24px;
+  display: flex; flex-direction: column; gap: 32px;
+  position: sticky; top: 0; height: 100vh;
+  background: var(--paper);
+}
+.brand { display: flex; flex-direction: column; gap: 2px; }
+.brand-mark { font-family: var(--serif); font-size: 28px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; }
+.brand-sub { font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); }
+.brand-kanji { font-family: var(--serif); font-size: 14px; color: var(--ink-3); margin-top: 4px; letter-spacing: 0.3em; }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 12px; font-size: 14px; cursor: pointer;
+  border-radius: var(--r); color: var(--ink-2);
+  transition: background 0.12s, color 0.12s;
+  border: none; text-align: left; font-family: var(--sans); letter-spacing: 0;
+}
+.nav-item:hover { background: var(--paper-2); color: var(--ink); }
+.nav-item.active { background: var(--ink); color: var(--paper); }
+.nav-item .num { font-family: var(--mono); font-size: 10px; opacity: 0.5; }
+.nav-item.active .num { opacity: 0.7; }
+.sidebar-foot {
+  margin-top: auto; padding-top: 16px; border-top: 1px solid var(--rule);
+  font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+  letter-spacing: 0.06em; line-height: 1.6;
+}
+.main { padding: 40px 56px 80px; min-width: 0; }
+.page-head {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  border-bottom: 1px solid var(--ink); padding-bottom: 18px; margin-bottom: 32px;
+}
+.page-head h1 {
+  font-family: var(--serif); font-weight: 500; font-size: 44px;
+  margin: 0; letter-spacing: -0.02em; line-height: 1;
+}
+.page-head .meta {
+  font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+  letter-spacing: 0.08em; text-transform: uppercase; text-align: right; line-height: 1.7;
+}
+.card {
+  border: 1px solid var(--rule); background: var(--paper);
+  padding: 24px; border-radius: var(--r);
+}
+.card-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--rule);
+}
+.card-head h2 { font-family: var(--serif); font-weight: 500; font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+.card-head .aside { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.06em; }
+.dash { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+.dash > .full { grid-column: 1 / -1; }
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid var(--rule); }
+.stat { padding: 22px 20px; border-right: 1px solid var(--rule); display: flex; flex-direction: column; gap: 4px; }
+.stat:last-child { border-right: none; }
+.stat .label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); }
+.stat .value { font-family: var(--serif); font-size: 38px; font-weight: 500; line-height: 1; letter-spacing: -0.02em; }
+.stat .value.mono { font-family: var(--mono); font-size: 28px; letter-spacing: -0.02em; }
+.stat .value.accent { color: var(--accent); }
+.stat .delta { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+.stat .delta.up { color: var(--good); }
+.stat .delta.down { color: var(--accent); }
+.compound { position: relative; height: 280px; background: var(--paper); }
+.compound svg { width: 100%; height: 100%; display: block; }
+.compound .axis text { font-family: var(--mono); font-size: 10px; fill: var(--ink-3); letter-spacing: 0.04em; }
+.compound .grid-line { stroke: var(--rule); stroke-width: 0.5; stroke-dasharray: 2 4; }
+.habit-grid { display: flex; flex-direction: column; }
+.habit-row {
+  display: grid; grid-template-columns: 1fr auto auto;
+  align-items: center; padding: 14px 0; border-bottom: 1px solid var(--rule); gap: 16px;
+}
+.habit-row:last-child { border-bottom: none; }
+.habit-name { font-size: 15px; display: flex; align-items: center; gap: 10px; }
+.habit-name .ic { font-family: var(--mono); font-size: 10px; color: var(--ink-3); width: 24px; }
+.habit-streak { font-family: var(--mono); font-size: 12px; color: var(--ink-3); display: flex; gap: 8px; align-items: center; }
+.habit-streak .flame { color: var(--accent); }
+.check {
+  width: 28px; height: 28px; border: 1.5px solid var(--ink-4); border-radius: var(--r);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  background: transparent; transition: all 0.12s; padding: 0;
+  font-family: var(--serif); font-size: 18px; color: transparent;
+}
+.check:hover { border-color: var(--ink); background: var(--paper-2); }
+.check.done { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.heatmap { display: grid; grid-template-columns: repeat(30, 1fr); gap: 3px; margin-top: 4px; }
+.heat-cell { aspect-ratio: 1; background: var(--paper-3); border-radius: 1px; }
+.heat-cell.l1 { background: var(--ink-4); }
+.heat-cell.l4 { background: var(--ink); }
+.heat-cell.future { background: transparent; border: 1px dashed var(--rule); }
+.focus-overlay {
+  position: fixed; inset: 0; background: var(--ink); color: var(--paper);
+  z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: var(--serif);
+}
+.focus-overlay .quote {
+  position: absolute; top: 60px; left: 0; right: 0; text-align: center;
+  font-family: var(--serif); font-style: italic; font-size: 16px; opacity: 0.5;
+  padding: 0 40px; max-width: 600px; margin: 0 auto; line-height: 1.5;
+}
+.focus-overlay .label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; opacity: 0.5; margin-bottom: 24px; }
+.focus-overlay .timer { font-family: var(--serif); font-size: 180px; font-weight: 300; line-height: 1; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.focus-overlay .task { margin-top: 20px; font-size: 22px; font-style: italic; opacity: 0.8; max-width: 600px; text-align: center; }
+.focus-overlay .controls { margin-top: 60px; display: flex; gap: 16px; }
+.focus-overlay .controls button { border-color: var(--paper); color: var(--paper); padding: 12px 24px; }
+.focus-overlay .controls button:hover { background: var(--paper); color: var(--ink); }
+.focus-overlay .session-count { position: absolute; bottom: 40px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; opacity: 0.4; text-transform: uppercase; }
+.set-grid { display: grid; grid-template-columns: 30px 1fr 80px 80px 60px 30px; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--rule); font-size: 14px; }
+.set-grid.head { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); border-bottom: 1px solid var(--ink); }
+.exercise-block { border: 1px solid var(--rule); padding: 16px 18px; margin-bottom: 12px; border-radius: var(--r); }
+.exercise-name { font-family: var(--serif); font-size: 18px; letter-spacing: -0.01em; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; }
+.exercise-name .pr { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 0.1em; }
+.entry { border-bottom: 1px solid var(--rule); padding: 18px 0; }
+.entry:last-child { border-bottom: none; }
+.entry .when { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; }
+.entry .body { font-family: var(--serif); font-size: 17px; line-height: 1.5; font-style: italic; }
+.entry.weakness .when { color: var(--accent); }
+.entry.weakness .body { font-style: normal; font-family: var(--sans); font-size: 14px; }
+.identity-card { background: var(--ink); color: var(--paper); padding: 32px; border-radius: var(--r); }
+.identity-card .label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.6; margin-bottom: 12px; }
+.identity-card .statement { font-family: var(--serif); font-size: 28px; line-height: 1.3; font-weight: 400; letter-spacing: -0.01em; }
+.quote-card { padding: 32px; border: 1px solid var(--rule); background: var(--paper-2); border-radius: var(--r); }
+.quote-card .quote-text { font-family: var(--serif); font-style: italic; font-size: 22px; line-height: 1.4; letter-spacing: -0.005em; }
+.quote-card .quote-attr { font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); margin-top: 16px; }
+.friction-overlay { position: fixed; inset: 0; background: var(--paper); z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
+.friction-overlay .pre { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
+.friction-overlay h2 { font-family: var(--serif); font-size: 36px; font-weight: 500; margin: 0 0 24px; letter-spacing: -0.02em; text-align: center; max-width: 700px; line-height: 1.2; }
+.friction-overlay .sentence { font-family: var(--serif); font-size: 20px; font-style: italic; color: var(--ink-3); text-align: center; margin-bottom: 32px; line-height: 1.5; max-width: 600px; }
+.friction-overlay textarea { max-width: 600px; width: 100%; border: 1px solid var(--rule); padding: 16px; font-family: var(--serif); font-size: 18px; border-radius: var(--r); min-height: 120px; background: var(--paper-2); }
+.friction-overlay .progress { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 12px; letter-spacing: 0.08em; }
+.row { display: flex; gap: 16px; align-items: center; }
+.col { display: flex; flex-direction: column; gap: 12px; }
+.between { display: flex; justify-content: space-between; align-items: center; }
+.muted { color: var(--ink-3); }
+.mono { font-family: var(--mono); }
+.serif { font-family: var(--serif); }
+.tiny { font-size: 11px; letter-spacing: 0.08em; }
+.gap-24 { gap: 24px; }
+.gap-32 { gap: 32px; }
+.mt-24 { margin-top: 24px; }
+.mt-32 { margin-top: 32px; }
+.divider { border: none; border-top: 1px solid var(--rule); margin: 24px 0; }
+.divider.heavy { border-top-color: var(--ink); }
+.tag { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; border: 1px solid var(--rule); padding: 3px 8px; border-radius: 100px; color: var(--ink-3); }
+.tag.accent { color: var(--accent); border-color: var(--accent); }
+.tag.good { color: var(--good); border-color: var(--good); }
+.bar { height: 4px; background: var(--paper-3); position: relative; border-radius: 2px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--ink); transition: width 0.4s; }
+.banner { border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 14px 0; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 32px; color: var(--ink-2); }
+body.theme-ink {
+  --paper: #14110d; --paper-2: #1c1814; --paper-3: #26211b;
+  --ink: #f0e8d4; --ink-2: #c9c0a9; --ink-3: #8a8170; --ink-4: #5a5347;
+  --rule: #2e2820; --accent: #c25d5d; --accent-soft: #a14848;
+  --gold: #c9a94a; --good: #6e9c6e;
+}
+body.theme-forge {
+  --paper: #0a0a0a; --paper-2: #141414; --paper-3: #1f1f1f;
+  --ink: #ffffff; --ink-2: #d4d4d4; --ink-3: #8a8a8a; --ink-4: #5a5a5a;
+  --rule: #2a2a2a; --accent: #d4622a; --accent-soft: #b04f1e;
+  --gold: #e0a83c; --good: #4a9b6e;
+}
+.setup { max-width: 560px; margin: 80px auto; padding: 40px; border: 1px solid var(--rule); border-radius: var(--r); background: var(--paper); }
+.setup h1 { font-family: var(--serif); font-size: 36px; font-weight: 500; letter-spacing: -0.02em; margin: 0 0 8px; }
+.setup .sub { font-family: var(--serif); font-style: italic; color: var(--ink-3); margin-bottom: 32px; font-size: 16px; line-height: 1.5; }
+.setup label { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; margin-top: 20px; }
+.setup input { font-family: var(--mono); font-size: 13px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: var(--r); background: var(--paper-2); }
+.setup input:focus { border-color: var(--ink); }
+.setup .actions { margin-top: 32px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.sync-banner { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); border-bottom: 1px solid var(--rule); background: var(--paper-2); }
+.sync-banner .live { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--good); margin-right: 8px; animation: live-pulse 2s ease-in-out infinite; }
+.sync-banner .live.error { background: var(--accent); animation: none; }
+.sync-banner .live.syncing { background: var(--gold); }
+@keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.sync-banner button { border: 1px solid var(--rule); background: transparent; color: var(--ink-3); font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; padding: 4px 10px; }
+.sync-banner button:hover { color: var(--ink); border-color: var(--ink-3); background: transparent; }
+.empty-state { padding: 60px 20px; text-align: center; color: var(--ink-3); font-family: var(--serif); font-style: italic; font-size: 16px; border: 1px dashed var(--rule); border-radius: var(--r); }
+.read-only-tag { display: inline-block; font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; color: var(--ink-3); border: 1px solid var(--rule); padding: 2px 6px; border-radius: 100px; text-transform: uppercase; margin-left: 8px; vertical-align: middle; }
+/* focus screen */
+.focus-start-card { display: flex; flex-direction: column; gap: 16px; }
+.focus-duration-row { display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
 </head>
 <body>
+<div id="root"></div>
 
-<header>
-  <div style="display:flex;align-items:baseline;gap:8px">
-    <span class="logo-k">K</span><span class="logo-rest">aizen</span>
-    <span class="logo-sub">Companion</span>
-  </div>
-  <button class="refresh-btn" onclick="loadAll()" title="Refresh">↻</button>
-</header>
-
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('journal')">📓 Journal</div>
-  <div class="tab"        onclick="switchTab('goals')">🎯 Goals</div>
-  <div class="tab"        onclick="switchTab('wins')">🏆 Wins</div>
-  <div class="tab"        onclick="switchTab('templates')">📋 Templates</div>
-</div>
-
-<div class="content">
-  <div id="panel-journal"   class="panel active"></div>
-  <div id="panel-goals"     class="panel"></div>
-  <div id="panel-wins"      class="panel"></div>
-  <div id="panel-templates" class="panel"></div>
-</div>
-
-<!-- Modal -->
-<div id="overlay" class="overlay hidden" onclick="overlayBg(event)">
-  <div class="modal">
-    <div class="modal-head">
-      <h3 id="modal-title"></h3>
-      <button class="close-btn" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-body" id="modal-body"></div>
-    <div class="modal-footer" id="modal-footer"></div>
-  </div>
-</div>
-
-<div id="toast" class="toast hidden"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
 <script>
-  const SUPABASE_URL = 'https://iygpfvthdgzxthjnwfym.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5Z3BmdnRoZGd6eHRoam53ZnltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTEzNjgsImV4cCI6MjA5MzIyNzM2OH0.JRNfs7Oa6G8OHX7S7XCh7W-q0haCvQY5T1TpQm7p3DY';
+/* Pre-fill credentials for existing users upgrading from v1 */
+window.__KAIZEN_PREFILL = {
+  url: "https://iygpfvthdgzxthjnwfym.supabase.co",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5Z3BmdnRoZGd6eHRoam53ZnltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTEzNjgsImV4cCI6MjA5MzIyNzM2OH0.JRNfs7Oa6G8OHX7S7XCh7W-q0haCvQY5T1TpQm7p3DY"
+};
+</script>
 
-  const MOOD_EMOJI = ['😔','😐','🙂','😄','🔥'];
-  const MOOD_COLOR = ['#F87171','#FACC15','#60A5FA','#4ADE80','#FF9F43'];
+<script type="text/babel">
+/* =====================================================================
+   TWEAKS PANEL
+   ===================================================================== */
+const __TWEAKS_STYLE = `
+  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
+    max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+    background:rgba(250,249,247,.78);color:#29261b;
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    border:.5px solid rgba(255,255,255,.6);border-radius:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
+    font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  .twk-hd{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 8px 10px 14px;cursor:move;user-select:none}
+  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);
+    width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;
+    overflow-y:auto;overflow-x:hidden;min-height:0}
+  .twk-row{display:flex;flex-direction:column;gap:5px}
+  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;color:rgba(41,38,27,.72)}
+  .twk-lbl>span:first-child{font-weight:500}
+  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:rgba(41,38,27,.45);padding:10px 0 0}
+  .twk-sect:first-child{padding-top:0}
+  .twk-field{appearance:none;width:100%;height:26px;padding:0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;
+    background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
+  .twk-seg{position:relative;display:flex;padding:2px;border-radius:8px;
+    background:rgba(0,0,0,.06);user-select:none}
+  .twk-seg-thumb{position:absolute;top:2px;bottom:2px;border-radius:6px;
+    background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.12);
+    transition:left .15s cubic-bezier(.3,.7,.4,1),width .15s}
+  .twk-seg button{appearance:none;position:relative;z-index:1;flex:1;border:0;
+    background:transparent;color:inherit;font:inherit;font-weight:500;min-height:22px;
+    border-radius:6px;cursor:default;padding:4px 6px;line-height:1.2}
+  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;
+    background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+  .twk-toggle[data-on="1"]{background:#34c759}
+  .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .twk-toggle[data-on="1"] i{transform:translateX(14px)}
+  .twk-btn{appearance:none;height:26px;padding:0 12px;border:0;border-radius:7px;
+    background:rgba(0,0,0,.78);color:#fff;font:inherit;font-weight:500;cursor:default}
+  .twk-btn:hover{background:rgba(0,0,0,.88)}
+  .twk-btn.secondary{background:rgba(0,0,0,.06);color:inherit}
+`;
 
-  // ── Data cache (avoids embedding JSON in onclick attributes) ───────────────
-  let _journal = [], _goals = [], _wins = [];
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  const setTweak = React.useCallback((keyOrEdits, val) => {
+    const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
+      ? keyOrEdits : { [keyOrEdits]: val };
+    setValues((prev) => ({ ...prev, ...edits }));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+  }, []);
+  return [values, setTweak];
+}
 
-  // ── Modal state ────────────────────────────────────────────────────────────
-  let modalType       = null;   // 'journal' | 'goal' | 'win'
-  let editingId       = null;   // remote_id being edited, null = new
-  let selMood         = 3;
-  let selWinType      = 'WIN';
-  let selStatus       = 'ACTIVE';
+function TweaksPanel({ title = 'Tweaks', children }) {
+  const [open, setOpen] = React.useState(false);
+  const dragRef = React.useRef(null);
+  const offsetRef = React.useRef({ x: 16, y: 16 });
+  const PAD = 16;
 
-  // ── API ────────────────────────────────────────────────────────────────────
-  // GET requests must not send Content-Type — newer PostgREST returns 400 if they do
-  const H_AUTH = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` };
-  const H_MOD  = { ...H_AUTH, 'Content-Type': 'application/json' };
-
-  async function apiGet(table, order) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?order=${order}&limit=200`, { headers: H_AUTH });
-    if (!r.ok) {
-      const body = await r.text().catch(() => '');
-      console.error(`apiGet ${table}:`, r.status, body);
-      throw new Error(`${table}: ${r.status}`);
-    }
-    return r.json();
-  }
-
-  async function apiUpsert(table, data) {
-    // PATCH existing row first; if zero rows matched, INSERT new row.
-    // Avoids relying on PostgREST merge-duplicates + unique constraint discovery.
-    const patchR = await fetch(
-      `${SUPABASE_URL}/rest/v1/${table}?remote_id=eq.${encodeURIComponent(data.remote_id)}`,
-      { method: 'PATCH', headers: { ...H_MOD, 'Prefer': 'count=exact' }, body: JSON.stringify(data) }
-    );
-    if (!patchR.ok) {
-      const body = await patchR.text().catch(() => '');
-      console.error(`PATCH ${table}:`, patchR.status, body);
-      throw new Error(`PATCH ${table} ${patchR.status}: ${body}`);
-    }
-    const range = patchR.headers.get('Content-Range'); // "*/1" updated, "*/0" no match
-    if (range && !range.endsWith('/0')) return;
-
-    // No existing row — insert
-    const postR = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-      method: 'POST',
-      headers: { ...H_MOD, 'Prefer': 'return=minimal' },
-      body: JSON.stringify(data),
-    });
-    if (!postR.ok) {
-      const body = await postR.text().catch(() => '');
-      console.error(`POST ${table}:`, postR.status, body);
-      throw new Error(`POST ${table} ${postR.status}: ${body}`);
-    }
-  }
-
-  async function apiDelete(table, remoteId) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?remote_id=eq.${remoteId}`, { method: 'DELETE', headers: H_MOD });
-    if (!r.ok) {
-      const body = await r.text().catch(() => '');
-      console.error(`apiDelete ${table}:`, r.status, body);
-      throw new Error(`Delete failed: ${r.status}`);
-    }
-  }
-
-  // ── Utilities ──────────────────────────────────────────────────────────────
-  function today()    { return new Date().toISOString().split('T')[0]; }
-  function nowMs()    { return Date.now(); }
-  function uuid()     { return crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);}); }
-  function esc(s)     { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function fmtDate(s) { try{return new Date(s+'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}catch{return s||'';} }
-  function spinner()  { return `<div class="loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`; }
-
-  let toastTimer = null;
-  function toast(msg, err=false) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.style.borderColor = err ? 'rgba(248,113,113,0.4)' : 'rgba(245,158,11,0.4)';
-    el.classList.remove('hidden');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.add('hidden'), 2600);
-  }
-
-  // ── Modal helpers ──────────────────────────────────────────────────────────
-  function overlayBg(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
-  function closeModal()  {
-    document.getElementById('overlay').classList.add('hidden');
-    modalType = null; editingId = null;
-  }
-  function openModal(title) {
-    document.getElementById('modal-title').textContent = title;
-    document.getElementById('overlay').classList.remove('hidden');
-  }
-
-  // ── Journal modal ──────────────────────────────────────────────────────────
-  function openJournalModal(idx) {
-    const e   = idx != null ? _journal[idx] : null;
-    modalType = 'journal';
-    editingId = e ? e.remote_id : null;
-    selMood   = e ? (e.mood || 3) : 3;
-
-    openModal(e ? 'Edit Journal Entry' : 'New Journal Entry');
-
-    document.getElementById('modal-body').innerHTML = `
-      <div class="form-group">
-        <label class="form-label">MOOD</label>
-        <div class="mood-row">
-          ${MOOD_EMOJI.map((em,i) => `<div class="mood-btn${selMood===i+1?' on':''}" id="m${i+1}" onclick="pickMood(${i+1})">${em}</div>`).join('')}
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">DATE</label>
-        <input class="form-input" type="date" id="j-date" value="${esc(e?.date ?? today())}">
-      </div>
-      <div class="form-group">
-        <label class="form-label">ENTRY</label>
-        <textarea class="form-input" id="j-text" placeholder="What's on your mind?"></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label">TAGS (comma-separated)</label>
-        <input class="form-input" type="text" id="j-tags" placeholder="recovery, mindset, pr...">
-      </div>
-    `;
-    document.getElementById('j-text').value = e?.text || '';
-    document.getElementById('j-tags').value = e?.tags || '';
-
-    document.getElementById('modal-footer').innerHTML =
-      (e ? `<button class="btn btn-danger" onclick="confirmDelete()">Delete</button>` : '') +
-      `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-       <button class="btn btn-primary" onclick="saveJournal()">Save</button>`;
-  }
-
-  function pickMood(n) {
-    selMood = n;
-    for (let i=1;i<=5;i++) document.getElementById(`m${i}`)?.classList.toggle('on', i===n);
-  }
-
-  async function saveJournal() {
-    const text = document.getElementById('j-text').value.trim();
-    if (!text) { toast('Entry text is required', true); return; }
-    try {
-      await apiUpsert('journal_entries', {
-        remote_id: editingId || uuid(),
-        date:      document.getElementById('j-date').value || today(),
-        text,
-        mood:      selMood,
-        tags:      document.getElementById('j-tags').value.trim(),
-        updated_at: nowMs(),
-      });
-      closeModal(); toast(editingId ? 'Entry updated ✓' : 'Entry saved ✓');
-      await loadAll();
-    } catch(e) { toast(e.message, true); }
-  }
-
-  // ── Goal modal ─────────────────────────────────────────────────────────────
-  function openGoalModal(idx) {
-    const g   = idx != null ? _goals[idx] : null;
-    modalType = 'goal';
-    editingId = g ? g.remote_id : null;
-    selStatus = g ? (g.status || 'ACTIVE') : 'ACTIVE';
-
-    openModal(g ? 'Edit Goal' : 'New Goal');
-
-    const STATUS = [
-      ['ACTIVE','Active','on-blue'], ['PAUSED','Paused','on-muted'], ['COMPLETED','Completed','on-green'],
-    ];
-
-    document.getElementById('modal-body').innerHTML = `
-      <div class="form-group">
-        <label class="form-label">TITLE</label>
-        <input class="form-input" type="text" id="g-title" placeholder="e.g. 5 strict pull-ups by June">
-      </div>
-      <div class="form-group">
-        <label class="form-label">DESCRIPTION (optional)</label>
-        <textarea class="form-input" id="g-desc" placeholder="Why this matters..."></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label">TARGET DATE (optional)</label>
-        <input class="form-input" type="date" id="g-date" value="${esc(g?.target_date ?? '')}">
-      </div>
-      <div class="form-group">
-        <label class="form-label">STATUS</label>
-        <div class="toggle-row">
-          ${STATUS.map(([v,l,c]) => `<div class="tog${selStatus===v?' '+c:''}" id="gs-${v}" onclick="pickStatus('${v}','${c}')">${l}</div>`).join('')}
-        </div>
-      </div>
-    `;
-    document.getElementById('g-title').value = g?.title || '';
-    document.getElementById('g-desc').value  = g?.description || '';
-
-    document.getElementById('modal-footer').innerHTML =
-      (g ? `<button class="btn btn-danger" onclick="confirmDelete()">Delete</button>` : '') +
-      `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-       <button class="btn btn-primary" onclick="saveGoal()">Save</button>`;
-  }
-
-  function pickStatus(v, cls) {
-    selStatus = v;
-    ['ACTIVE','PAUSED','COMPLETED'].forEach(s => {
-      const el = document.getElementById(`gs-${s}`);
-      if (!el) return;
-      const map = {ACTIVE:'on-blue',PAUSED:'on-muted',COMPLETED:'on-green'};
-      el.className = 'tog' + (s === v ? ' ' + map[s] : '');
-    });
-  }
-
-  async function saveGoal() {
-    const title = document.getElementById('g-title').value.trim();
-    if (!title) { toast('Title is required', true); return; }
-    try {
-      await apiUpsert('goals', {
-        remote_id:   editingId || uuid(),
-        title,
-        description: document.getElementById('g-desc').value.trim(),
-        target_date: document.getElementById('g-date').value || '',
-        status:      selStatus,
-        updated_at:  nowMs(),
-      });
-      closeModal(); toast(editingId ? 'Goal updated ✓' : 'Goal saved ✓');
-      await loadAll();
-    } catch(e) { toast(e.message, true); }
-  }
-
-  async function markDone(idx) {
-    const g = _goals[idx];
-    try {
-      await apiUpsert('goals', { ...g, status: 'COMPLETED', updated_at: nowMs() });
-      toast('Goal completed ✓'); await loadAll();
-    } catch(e) { toast(e.message, true); }
-  }
-
-  // ── Win modal ──────────────────────────────────────────────────────────────
-  function openWinModal(idx) {
-    const w    = idx != null ? _wins[idx] : null;
-    modalType  = 'win';
-    editingId  = w ? w.remote_id : null;
-    selWinType = w ? (w.type || 'WIN') : 'WIN';
-
-    openModal(w ? 'Edit Entry' : 'New Win / Lesson');
-    renderWinModal(w);
-  }
-
-  function renderWinModal(w) {
-    const isWin = selWinType === 'WIN';
-    document.getElementById('modal-body').innerHTML = `
-      <div class="form-group">
-        <label class="form-label">TYPE</label>
-        <div class="toggle-row">
-          <div class="tog${selWinType==='WIN'?' on-gold':''}" id="wt-WIN"  onclick="pickWinType('WIN')">🏆 Win</div>
-          <div class="tog${selWinType==='LOSS'?' on-blue':''}" id="wt-LOSS" onclick="pickWinType('LOSS')">📖 Lesson</div>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label" id="wt-label">${isWin ? 'WIN' : 'LESSON'}</label>
-        <input class="form-input" type="text" id="w-title" placeholder="${isWin ? 'e.g. First strict pull-up!' : 'e.g. Skipped rest day — regretted it'}">
-      </div>
-      <div class="form-group">
-        <label class="form-label">DETAILS (optional)</label>
-        <textarea class="form-input" id="w-desc" placeholder="${isWin ? 'What made it special...' : 'What I\'d do differently...'}"></textarea>
-      </div>
-    `;
-    document.getElementById('w-title').value = w?.title || '';
-    document.getElementById('w-desc').value  = w?.description || '';
-
-    const accentColor = selWinType === 'WIN' ? 'var(--streak)' : 'var(--blue)';
-    document.getElementById('modal-footer').innerHTML =
-      (w ? `<button class="btn btn-danger" onclick="confirmDelete()">Delete</button>` : '') +
-      `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-       <button class="btn btn-primary" id="win-save-btn" style="background:${accentColor};color:#000" onclick="saveWin()">Save</button>`;
-  }
-
-  function pickWinType(type) {
-    selWinType = type;
-    const w = editingId ? _wins.find(x => x.remote_id === editingId) : null;
-    renderWinModal(w);
-  }
-
-  async function saveWin() {
-    const title = document.getElementById('w-title').value.trim();
-    if (!title) { toast('Title is required', true); return; }
-    try {
-      await apiUpsert('wins', {
-        remote_id:   editingId || uuid(),
-        title,
-        description: document.getElementById('w-desc').value.trim(),
-        date:        today(),
-        type:        selWinType,
-        updated_at:  nowMs(),
-      });
-      closeModal();
-      toast(editingId ? 'Updated ✓' : (selWinType === 'WIN' ? 'Win logged ✓' : 'Lesson logged ✓'));
-      await loadAll();
-    } catch(e) { toast(e.message, true); }
-  }
-
-  // ── Unified delete ─────────────────────────────────────────────────────────
-  async function confirmDelete() {
-    const tableMap = { journal: 'journal_entries', goal: 'goals', win: 'wins' };
-    const label    = { journal: 'journal entry', goal: 'goal', win: 'entry' };
-    if (!confirm(`Delete this ${label[modalType]}?`)) return;
-    try {
-      await apiDelete(tableMap[modalType], editingId);
-      closeModal(); toast('Deleted');
-      await loadAll();
-    } catch(e) { toast(e.message, true); }
-  }
-
-  // ── Render ─────────────────────────────────────────────────────────────────
-  function renderJournal(entries) {
-    if (!entries.length) return `<div class="empty"><div class="empty-icon">📓</div><div class="empty-title">No entries yet</div><div>Add your first journal entry above.</div></div>`;
-    return entries.map((e, i) => {
-      const mood   = Math.max(0, Math.min(4, (e.mood||3) - 1));
-      const mColor = MOOD_COLOR[mood];
-      const tags   = (e.tags||'').split(',').map(t=>t.trim()).filter(Boolean);
-      return `
-        <div class="card" style="border-color:${mColor}33">
-          <div class="card-row">
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:18px">${MOOD_EMOJI[mood]}</span>
-              <span class="card-date">${fmtDate(e.date)}</span>
-            </div>
-            <div class="card-actions">
-              <button class="icon-btn"     onclick="openJournalModal(${i})">✏️</button>
-              <button class="icon-btn del" onclick="quickDelete('journal_entries','${esc(e.remote_id)}','journal entry')">🗑️</button>
-            </div>
-          </div>
-          <div class="card-text">${esc(e.text)}</div>
-          ${tags.length ? `<div class="tags">${tags.slice(0,5).map(t=>`<span class="tag">#${esc(t)}</span>`).join('')}</div>` : ''}
-        </div>`;
-    }).join('');
-  }
-
-  function renderGoals(goals) {
-    if (!goals.length) return `<div class="empty"><div class="empty-icon">🎯</div><div class="empty-title">No goals yet</div><div>Add your first goal above.</div></div>`;
-    const active    = goals.filter(g => g.status === 'ACTIVE');
-    const completed = goals.filter(g => g.status === 'COMPLETED');
-    const paused    = goals.filter(g => g.status === 'PAUSED');
-    const card = (g, i) => {
-      const isComp = g.status === 'COMPLETED';
-      const badge  = g.status==='ACTIVE'    ? `<span class="badge badge-active">ACTIVE</span>`
-                   : g.status==='COMPLETED' ? `<span class="badge badge-completed">DONE ✓</span>`
-                                            : `<span class="badge badge-paused">PAUSED</span>`;
-      return `
-        <div class="card">
-          <div class="card-row">
-            <span class="card-title" style="${isComp?'text-decoration:line-through;opacity:0.5':''}">${esc(g.title)}</span>
-            <div class="card-actions">
-              ${badge}
-              ${!isComp ? `<button class="done-btn" onclick="markDone(${i})">Done ✓</button>` : ''}
-              <button class="icon-btn"     onclick="openGoalModal(${i})">✏️</button>
-              <button class="icon-btn del" onclick="quickDelete('goals','${esc(g.remote_id)}','goal')">🗑️</button>
-            </div>
-          </div>
-          ${g.description ? `<div class="card-desc">${esc(g.description)}</div>` : ''}
-          ${g.target_date ? `<div class="deadline">📅 By ${fmtDate(g.target_date)}</div>` : ''}
-        </div>`;
+  const clampToViewport = React.useCallback(() => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const w = panel.offsetWidth, h = panel.offsetHeight;
+    const maxRight = Math.max(PAD, window.innerWidth - w - PAD);
+    const maxBottom = Math.max(PAD, window.innerHeight - h - PAD);
+    offsetRef.current = {
+      x: Math.min(maxRight, Math.max(PAD, offsetRef.current.x)),
+      y: Math.min(maxBottom, Math.max(PAD, offsetRef.current.y)),
     };
-    let html = '';
-    if (active.length)    html += `<div class="section-label">Active</div>`    + active.map((g,i) => card(g, goals.indexOf(g))).join('');
-    if (completed.length) html += `<div class="section-label">Completed</div>` + completed.map(g => card(g, goals.indexOf(g))).join('');
-    if (paused.length)    html += `<div class="section-label">Paused</div>`    + paused.map(g => card(g, goals.indexOf(g))).join('');
-    return html;
+    panel.style.right = offsetRef.current.x + 'px';
+    panel.style.bottom = offsetRef.current.y + 'px';
+  }, []);
+
+  React.useEffect(() => {
+    if (!open) return;
+    clampToViewport();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(clampToViewport) : null;
+    if (ro) ro.observe(document.documentElement);
+    else window.addEventListener('resize', clampToViewport);
+    return () => { if (ro) ro.disconnect(); else window.removeEventListener('resize', clampToViewport); };
+  }, [open, clampToViewport]);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const t = e?.data?.type;
+      if (t === '__activate_edit_mode') setOpen(true);
+      else if (t === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const dismiss = () => {
+    setOpen(false);
+    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+  };
+
+  const onDragStart = (e) => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const r = panel.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const startRight = window.innerWidth - r.right;
+    const startBottom = window.innerHeight - r.bottom;
+    const move = (ev) => {
+      offsetRef.current = { x: startRight - (ev.clientX - sx), y: startBottom - (ev.clientY - sy) };
+      clampToViewport();
+    };
+    const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
+  if (!open) return null;
+  return (
+    <>
+      <style>{__TWEAKS_STYLE}</style>
+      <div ref={dragRef} className="twk-panel" style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}>
+        <div className="twk-hd" onMouseDown={onDragStart}>
+          <b>{title}</b>
+          <button className="twk-x" onMouseDown={(e) => e.stopPropagation()} onClick={dismiss}>✕</button>
+        </div>
+        <div className="twk-body">{children}</div>
+      </div>
+    </>
+  );
+}
+
+function TweakSection({ label, children }) {
+  return <><div className="twk-sect">{label}</div>{children}</>;
+}
+
+function TweakRow({ label, value, children, inline = false }) {
+  return (
+    <div className={inline ? 'twk-row twk-row-h' : 'twk-row'}>
+      <div className="twk-lbl"><span>{label}</span>{value != null && <span>{value}</span>}</div>
+      {children}
+    </div>
+  );
+}
+
+function TweakRadio({ label, value, options, onChange }) {
+  const trackRef = React.useRef(null);
+  const [dragging, setDragging] = React.useState(false);
+  const opts = options.map((o) => (typeof o === 'object' ? o : { value: o, label: o }));
+  const idx = Math.max(0, opts.findIndex((o) => o.value === value));
+  const n = opts.length;
+  const valueRef = React.useRef(value);
+  valueRef.current = value;
+  const segAt = (clientX) => {
+    const r = trackRef.current.getBoundingClientRect();
+    const inner = r.width - 4;
+    const i = Math.floor(((clientX - r.left - 2) / inner) * n);
+    return opts[Math.max(0, Math.min(n - 1, i))].value;
+  };
+  const onPointerDown = (e) => {
+    setDragging(true);
+    const v0 = segAt(e.clientX);
+    if (v0 !== valueRef.current) onChange(v0);
+    const move = (ev) => { if (!trackRef.current) return; const v = segAt(ev.clientX); if (v !== valueRef.current) onChange(v); };
+    const up = () => { setDragging(false); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  return (
+    <TweakRow label={label}>
+      <div ref={trackRef} role="radiogroup" onPointerDown={onPointerDown} className={dragging ? 'twk-seg dragging' : 'twk-seg'}>
+        <div className="twk-seg-thumb" style={{ left: `calc(2px + ${idx} * (100% - 4px) / ${n})`, width: `calc((100% - 4px) / ${n})` }} />
+        {opts.map((o) => <button key={o.value} type="button" role="radio" aria-checked={o.value === value}>{o.label}</button>)}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakToggle({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <button type="button" className="twk-toggle" data-on={value ? '1' : '0'} role="switch" aria-checked={!!value} onClick={() => onChange(!value)}><i /></button>
+    </div>
+  );
+}
+
+function TweakButton({ label, onClick, secondary = false }) {
+  return <button type="button" className={secondary ? 'twk-btn secondary' : 'twk-btn'} onClick={onClick}>{label}</button>;
+}
+
+/* =====================================================================
+   DATA LAYER
+   ===================================================================== */
+const STORAGE_KEY  = "kaizen.v3.config";
+const PROFILES_KEY = "kaizen.v3.profiles";
+
+function loadConfig() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; } }
+function saveConfig(c) { localStorage.setItem(STORAGE_KEY, JSON.stringify(c)); }
+function clearConfig() { localStorage.removeItem(STORAGE_KEY); }
+function loadProfiles() { try { return JSON.parse(localStorage.getItem(PROFILES_KEY) || "[]"); } catch { return []; } }
+function saveProfiles(list) { localStorage.setItem(PROFILES_KEY, JSON.stringify(list)); }
+function upsertProfile(p) {
+  const list = loadProfiles();
+  const idx = list.findIndex(x => x.username.toLowerCase() === p.username.toLowerCase());
+  if (idx >= 0) list[idx] = { ...list[idx], ...p }; else list.push(p);
+  saveProfiles(list); return list;
+}
+function removeProfile(username) {
+  const list = loadProfiles().filter(x => x.username.toLowerCase() !== username.toLowerCase());
+  saveProfiles(list); return list;
+}
+function newUserId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16); });
+}
+
+async function sbFetch(cfg, path, opts = {}) {
+  const url = `${cfg.url.replace(/\/$/, "")}/rest/v1/${path}`;
+  const headers = {
+    "apikey": cfg.anonKey,
+    "Authorization": `Bearer ${cfg.anonKey}`,
+    "x-user-id": cfg.userId,
+    "Content-Type": "application/json",
+    ...(opts.headers || {}),
+  };
+  const res = await fetch(url, { ...opts, headers });
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+async function loadAll(cfg) {
+  const uid = cfg.userId;
+  const q = `user_id=eq.${uid}`;
+  const [habits, habitLogs, workouts, exercises, sets, focus, journal, weakness, identity, wins, goals] = await Promise.all([
+    sbFetch(cfg, `habits?${q}&archived=eq.false&order=position.asc`),
+    sbFetch(cfg, `habit_logs?${q}&order=date.desc&limit=2000`),
+    sbFetch(cfg, `workouts?${q}&order=date.desc&limit=200`),
+    sbFetch(cfg, `workout_exercises?${q}&order=position.asc`),
+    sbFetch(cfg, `workout_sets?${q}&order=position.asc`),
+    sbFetch(cfg, `focus_sessions?${q}&order=date.desc&limit=200`),
+    sbFetch(cfg, `journal_entries?${q}&order=created_at.desc&limit=200`),
+    sbFetch(cfg, `weakness_entries?${q}&order=created_at.desc&limit=200`),
+    sbFetch(cfg, `identity_state?${q}&limit=1`),
+    sbFetch(cfg, `wins?order=date.desc&limit=200`).catch(() => []),
+    sbFetch(cfg, `goals?order=updated_at.desc&limit=200`).catch(() => []),
+  ]);
+
+  const history = {};
+  habits.forEach(h => { history[h.id] = {}; });
+  habitLogs.forEach(l => {
+    if (!history[l.habit_id]) history[l.habit_id] = {};
+    history[l.habit_id][l.date] = l.done;
+  });
+
+  const exercisesByWorkout = {};
+  exercises.forEach(e => {
+    if (!exercisesByWorkout[e.workout_id]) exercisesByWorkout[e.workout_id] = [];
+    exercisesByWorkout[e.workout_id].push({ ...e, sets: [] });
+  });
+  const exerciseById = {};
+  Object.values(exercisesByWorkout).flat().forEach(e => { exerciseById[e.id] = e; });
+  sets.forEach(s => { const ex = exerciseById[s.exercise_id]; if (ex) ex.sets.push({ reps: s.reps, load: s.load_text, rpe: s.rpe }); });
+  const workoutsShaped = workouts.map(w => ({
+    id: w.id, date: w.date, day: w.day_type, name: w.name, duration: w.duration_min,
+    exercises: (exercisesByWorkout[w.id] || []).map(e => ({ name: e.name, sets: e.sets })),
+  }));
+
+  const id = (identity && identity[0]) || {};
+  return {
+    habits: habits.map(h => ({ id: h.id, name: h.name, icon: h.icon_num, category: h.category })),
+    history,
+    workouts: workoutsShaped,
+    journal: journal.map(j => ({ id: j.id, when: new Date(j.created_at).getTime(), body: j.body, source: j.source })),
+    weaknesses: weakness.map(w => ({ id: w.id, when: new Date(w.created_at).getTime(), body: w.body, source: w.source })),
+    focusSessions: focus.map(f => ({ date: f.date, minutes: f.minutes, task: f.task })),
+    wins: (wins || []).map(w => ({ id: w.remote_id, title: w.title, description: w.description || "", date: w.date, when: w.updated_at ? Number(w.updated_at) : 0 })),
+    goals: (goals || []).map(g => ({ id: g.remote_id, title: g.title, description: g.description || "", targetDate: g.target_date || "", status: g.status || "ACTIVE" })),
+    commitment: id.commitment || "I am someone who keeps small promises to himself.",
+    startedOn: id.started_on || new Date().toISOString().slice(0, 10),
+    todayPlan: id.today_plan || "",
+  };
+}
+
+async function postJournal(cfg, body) {
+  return sbFetch(cfg, "journal_entries", {
+    method: "POST",
+    headers: { "Prefer": "return=representation" },
+    body: JSON.stringify({ user_id: cfg.userId, body, source: "web" }),
+  });
+}
+
+async function postWeakness(cfg, body, tag) {
+  return sbFetch(cfg, "weakness_entries", {
+    method: "POST",
+    headers: { "Prefer": "return=representation" },
+    body: JSON.stringify({ user_id: cfg.userId, body, tag: tag || null, source: "web" }),
+  });
+}
+
+const QUOTES = [
+  { text: "You have power over your mind — not outside events. Realize this, and you will find strength.", attr: "Marcus Aurelius" },
+  { text: "We suffer more often in imagination than in reality.", attr: "Seneca" },
+  { text: "First say to yourself what you would be; and then do what you have to do.", attr: "Epictetus" },
+  { text: "It is not that we have a short time to live, but that we waste much of it.", attr: "Seneca" },
+  { text: "Waste no more time arguing what a good man should be. Be one.", attr: "Marcus Aurelius" },
+  { text: "Difficulties strengthen the mind, as labor does the body.", attr: "Seneca" },
+  { text: "No man is free who is not master of himself.", attr: "Epictetus" },
+];
+
+function todayKey() { const d = new Date(); d.setHours(0,0,0,0); return d.toISOString().slice(0,10); }
+function dateKey(daysAgo = 0) { const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - daysAgo); return d.toISOString().slice(0,10); }
+function streakFor(history, habitId) {
+  let streak = 0;
+  for (let i = 0; i < 365; i++) {
+    const v = history[habitId]?.[dateKey(i)];
+    if (v === true) streak++;
+    else if (i === 0) continue;
+    else break;
+  }
+  return streak;
+}
+function completionRate(history, days = 30) {
+  const habitIds = Object.keys(history);
+  let done = 0, total = 0;
+  for (let i = 0; i < days; i++) {
+    const k = dateKey(i);
+    habitIds.forEach((id) => {
+      const v = history[id]?.[k];
+      if (v === true) done++;
+      if (v === true || v === false) total++;
+    });
+  }
+  return total ? done / total : 0;
+}
+function daysSince(dateStr) {
+  return Math.floor((new Date() - new Date(dateStr)) / 86400000);
+}
+
+/* =====================================================================
+   COMPONENTS
+   ===================================================================== */
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+function CompoundChart({ rate30, daysIn = 47, totalDays = 365 }) {
+  const W = 720, H = 280, padL = 48, padR = 24, padT = 16, padB = 32;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const userMult = 0.997 + rate30 * 0.018;
+  const idealMult = 1.01, declineMult = 0.99;
+  const points = (mult) => { const pts = []; for (let d = 0; d <= totalDays; d += 5) pts.push([d, Math.pow(mult, d)]); return pts; };
+  const ideal = points(idealMult), user = points(userMult), decline = points(declineMult);
+  const allY = [...ideal, ...user, ...decline].map(p => p[1]);
+  const yMin = Math.min(...allY, 0.5), yMax = Math.max(...allY, 40);
+  const yLog = (y) => { const lMin = Math.log(yMin), lMax = Math.log(yMax); return innerH - ((Math.log(y) - lMin) / (lMax - lMin)) * innerH + padT; };
+  const xScale = (d) => (d / totalDays) * innerW + padL;
+  const path = (pts) => pts.map(([d, v], i) => `${i === 0 ? "M" : "L"} ${xScale(d).toFixed(1)} ${yLog(v).toFixed(1)}`).join(" ");
+  const gridYs = [0.5, 1, 2, 5, 10, 20, 37.78], gridXs = [0, 90, 180, 270, 365];
+  const userTodayY = yLog(Math.pow(userMult, daysIn)), userTodayX = xScale(daysIn);
+  return (
+    <div className="compound">
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="userArea" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="var(--ink)" stopOpacity="0.08" />
+            <stop offset="100%" stopColor="var(--ink)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {gridYs.map(y => (
+          <g key={y}>
+            <line className="grid-line" x1={padL} x2={W - padR} y1={yLog(y)} y2={yLog(y)} />
+            <text x={padL - 8} y={yLog(y) + 3} textAnchor="end" fontFamily="var(--mono)" fontSize="10" fill="var(--ink-3)">{y >= 1 ? `${y}×` : `${y}×`}</text>
+          </g>
+        ))}
+        {gridXs.map(x => (
+          <g key={x} className="axis">
+            <line className="grid-line" x1={xScale(x)} x2={xScale(x)} y1={padT} y2={H - padB} />
+            <text x={xScale(x)} y={H - padB + 16} textAnchor="middle" fontFamily="var(--mono)" fontSize="10" fill="var(--ink-3)">{x}d</text>
+          </g>
+        ))}
+        <line x1={padL} x2={W - padR} y1={yLog(1)} y2={yLog(1)} stroke="var(--ink-3)" strokeWidth="0.8" />
+        <path d={path(ideal)} stroke="var(--accent)" strokeWidth="1.2" fill="none" strokeDasharray="3 3" opacity="0.7" />
+        <path d={path(decline)} stroke="var(--ink-4)" strokeWidth="1" fill="none" strokeDasharray="2 4" opacity="0.6" />
+        <path d={`${path(user)} L ${xScale(totalDays)} ${yLog(yMin)} L ${padL} ${yLog(yMin)} Z`} fill="url(#userArea)" />
+        <path d={path(user)} stroke="var(--ink)" strokeWidth="1.8" fill="none" />
+        <line x1={userTodayX} x2={userTodayX} y1={padT} y2={H - padB} stroke="var(--accent)" strokeWidth="0.8" strokeDasharray="2 2" opacity="0.6" />
+        <circle cx={userTodayX} cy={userTodayY} r="4" fill="var(--accent)" />
+        <circle cx={userTodayX} cy={userTodayY} r="8" fill="none" stroke="var(--accent)" strokeWidth="0.8" opacity="0.4" />
+        <text x={W - padR - 4} y={yLog(Math.pow(idealMult, totalDays)) - 6} textAnchor="end" fontFamily="var(--mono)" fontSize="10" fill="var(--accent)">+1% / day → 37.78×</text>
+        <text x={W - padR - 4} y={yLog(Math.pow(declineMult, totalDays)) + 14} textAnchor="end" fontFamily="var(--mono)" fontSize="10" fill="var(--ink-3)">−1% / day → 0.03×</text>
+      </svg>
+    </div>
+  );
+}
+
+function Heatmap({ history, habitId, days = 90 }) {
+  const cells = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const k = dateKey(i), v = history[habitId]?.[k];
+    let cls = "heat-cell";
+    if (v === true) cls += " l4";
+    else if (v === false) cls += " l1";
+    else cls += " future";
+    cells.push(<div key={k} className={cls} title={`${k} — ${v === true ? "done" : v === false ? "missed" : ""}`} />);
+  }
+  return <div className="heatmap">{cells}</div>;
+}
+
+function QuoteCard({ quote }) {
+  return (
+    <div className="quote-card">
+      <div className="quote-text">"{quote.text}"</div>
+      <div className="quote-attr">— {quote.attr}</div>
+    </div>
+  );
+}
+
+function FocusOverlay({ minutes, task, onClose, onComplete, sessionsToday }) {
+  const totalSec = minutes * 60;
+  const [remaining, setRemaining] = useState(totalSec);
+  const [running, setRunning] = useState(true);
+  const quote = useMemo(() => QUOTES[Math.floor(Math.random() * QUOTES.length)], []);
+
+  useEffect(() => {
+    if (!running) return;
+    const iv = setInterval(() => {
+      setRemaining(r => {
+        if (r <= 1) { clearInterval(iv); onComplete?.(minutes); return 0; }
+        return r - 1;
+      });
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [running]);
+
+  const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
+  const ss = String(remaining % 60).padStart(2, "0");
+  return (
+    <div className="focus-overlay">
+      <div className="quote">"{quote.text}" — {quote.attr}</div>
+      <div className="label">Lock-in · {minutes} min</div>
+      <div className="timer">{mm}:{ss}</div>
+      {task && <div className="task">{task}</div>}
+      <div className="controls">
+        <button onClick={() => setRunning(r => !r)}>{running ? "Pause" : "Resume"}</button>
+        <button onClick={onClose}>End session</button>
+      </div>
+      <div className="session-count">Today · {sessionsToday} session{sessionsToday === 1 ? "" : "s"} completed</div>
+    </div>
+  );
+}
+
+/* =====================================================================
+   APP
+   ===================================================================== */
+const NAV = [
+  { id: "today",    label: "Today",      num: "01" },
+  { id: "habits",   label: "Habits",     num: "02" },
+  { id: "workouts", label: "Training",   num: "03" },
+  { id: "focus",    label: "Deep Work",  num: "04" },
+  { id: "wins",     label: "Wins",       num: "05" },
+  { id: "ledger",   label: "Ledger",     num: "06", writable: true },
+  { id: "journal",  label: "Journal",    num: "07", writable: true },
+];
+const POLL_MS = 60000;
+
+function App() {
+  const [config, setConfig] = useState(() => loadConfig());
+  if (!config) {
+    return <SetupScreen onSave={(cfg) => {
+      upsertProfile({ username: cfg.username, url: cfg.url, anonKey: cfg.anonKey, userId: cfg.userId, theme: cfg.theme });
+      saveConfig(cfg);
+      setConfig(cfg);
+    }} />;
+  }
+  return <KaizenApp config={config} onResetConfig={() => { clearConfig(); setConfig(null); }} />;
+}
+
+function SetupScreen({ onSave }) {
+  const [profiles, setProfiles] = useState(() => loadProfiles());
+  const [mode, setMode] = useState(() => loadProfiles().length > 0 ? "signin" : "create");
+  const [theme, setTheme] = useState("paper");
+
+  useEffect(() => { document.body.className = theme === "paper" ? "" : `theme-${theme}`; }, [theme]);
+
+  function refreshProfiles() {
+    const list = loadProfiles();
+    setProfiles(list);
+    if (list.length === 0) setMode("create");
   }
 
-  function renderWins(wins) {
-    if (!wins.length) return `<div class="empty"><div class="empty-icon">🏆</div><div class="empty-title">Nothing logged yet</div><div>Log a win or lesson above.</div></div>`;
-    const winsOnly = wins.filter(w => (w.type||'WIN') === 'WIN');
-    const lessons  = wins.filter(w => w.type === 'LOSS');
-    const card = (w, i) => {
-      const isWin = (w.type||'WIN') === 'WIN';
-      const accent = isWin ? 'var(--streak)' : 'var(--blue)';
-      return `
-        <div class="card">
-          <div class="card-row-win">
-            <div class="win-icon" style="background:${isWin?'rgba(251,146,60,0.15)':'rgba(96,165,250,0.15)'}">${isWin?'🏆':'📖'}</div>
-            <div class="win-body">
-              <div class="card-row" style="margin-bottom:2px">
-                <span class="card-title">${esc(w.title)}</span>
-                <div class="card-actions">
-                  <button class="icon-btn"     onclick="openWinModal(${i})">✏️</button>
-                  <button class="icon-btn del" onclick="quickDelete('wins','${esc(w.remote_id)}','entry')">🗑️</button>
+  return (
+    <div className="setup">
+      <h1>Kaizen</h1>
+      <div className="sub">
+        {mode === "signin"
+          ? "Welcome back. Pick a profile to continue."
+          : "Connect to your Supabase project. Your URL and key are pre-filled — just add a username and paste your User ID from the Android app's Settings."}
+      </div>
+      {mode === "signin" && (
+        <SignInList profiles={profiles} theme={theme} setTheme={setTheme}
+          onPick={(p) => onSave({ ...p, theme })}
+          onRemove={(name) => { removeProfile(name); refreshProfiles(); }}
+          onNew={() => setMode("create")} />
+      )}
+      {mode === "create" && (
+        <CreateProfile theme={theme} setTheme={setTheme} onSave={onSave}
+          hasProfiles={profiles.length > 0} onCancel={() => setMode("signin")} />
+      )}
+    </div>
+  );
+}
+
+function SignInList({ profiles, theme, setTheme, onPick, onRemove, onNew }) {
+  return (
+    <>
+      <label>Profile</label>
+      <div className="col" style={{ gap: 8, marginTop: 4 }}>
+        {profiles.map(p => (
+          <div key={p.username} className="row" style={{ gap: 8, alignItems: "stretch" }}>
+            <button className="ghost" style={{ flex: 1, justifyContent: "flex-start", textAlign: "left", padding: "14px 16px", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}
+              onClick={() => onPick(p)}>
+              <span style={{ fontFamily: "var(--serif)", fontSize: 18, letterSpacing: "-0.01em" }}>{p.username}</span>
+              <span className="mono tiny muted" style={{ letterSpacing: "0.08em" }}>{(p.url || "").replace(/^https?:\/\//, "").replace(/\.supabase\.co.*$/, "")} · {p.userId.slice(0, 8)}…</span>
+            </button>
+            <button className="ghost" onClick={(e) => { e.stopPropagation(); if (confirm(`Remove "${p.username}"?`)) onRemove(p.username); }} style={{ padding: "0 14px" }}>×</button>
+          </div>
+        ))}
+      </div>
+      <label style={{ marginTop: 24 }}>Theme</label>
+      <div className="row" style={{ gap: 8, marginTop: 4 }}>
+        {["paper", "ink", "forge"].map(t => <button key={t} className={theme === t ? "primary" : "ghost"} onClick={() => setTheme(t)}>{t}</button>)}
+      </div>
+      <div className="actions">
+        <button className="ghost" onClick={onNew}>+ New profile</button>
+        <span className="muted tiny" style={{ fontStyle: "italic" }}>Profiles live in this browser only.</span>
+      </div>
+    </>
+  );
+}
+
+function CreateProfile({ theme, setTheme, onSave, hasProfiles, onCancel }) {
+  const [username, setUsername] = useState("");
+  const [url, setUrl] = useState("");
+  const [anonKey, setAnonKey] = useState("");
+  const [userId, setUserId] = useState(() => newUserId());
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const list = loadProfiles();
+    if (list.length > 0 && !url && !anonKey) {
+      setUrl(list[0].url || "");
+      setAnonKey(list[0].anonKey || "");
+    } else if (list.length === 0 && window.__KAIZEN_PREFILL) {
+      setUrl(window.__KAIZEN_PREFILL.url || "");
+      setAnonKey(window.__KAIZEN_PREFILL.anonKey || "");
+    }
+  }, []);
+
+  async function connect() {
+    if (!username.trim() || !url || !anonKey || !userId) { setError("All fields are required."); return; }
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+      setError("User ID must be a valid UUID."); return;
+    }
+    setError(""); setBusy(true);
+    try {
+      await sbFetch({ url, anonKey, userId }, `habits?user_id=eq.${userId}&limit=1`);
+      onSave({ username: username.trim(), url, anonKey, userId, theme });
+    } catch (e) { setError("Connection failed: " + e.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <>
+      <label>Username</label>
+      <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="e.g. Jordan" autoFocus />
+      <label>Supabase URL</label>
+      <input type="text" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://xxxx.supabase.co" />
+      <label>Anon key</label>
+      <input type="password" value={anonKey} onChange={e => setAnonKey(e.target.value)} placeholder="eyJhbGciOi…" />
+      <label>User ID (UUID — from Android app Settings)</label>
+      <div className="row" style={{ gap: 8 }}>
+        <input type="text" value={userId} onChange={e => setUserId(e.target.value)} style={{ flex: 1 }} />
+        <button className="ghost" type="button" onClick={() => setUserId(newUserId())} title="Generate new UUID">↻</button>
+      </div>
+      <div className="muted tiny mono" style={{ marginTop: 6, letterSpacing: "0.08em" }}>COPY FROM ANDROID APP → SETTINGS → EXPORT USER ID</div>
+      <label style={{ marginTop: 20 }}>Theme</label>
+      <div className="row" style={{ gap: 8, marginTop: 4 }}>
+        {["paper", "ink", "forge"].map(t => <button key={t} className={theme === t ? "primary" : "ghost"} onClick={() => setTheme(t)}>{t}</button>)}
+      </div>
+      {error && <div style={{ marginTop: 16, color: "var(--accent)", fontFamily: "var(--mono)", fontSize: 12 }}>{error}</div>}
+      <div className="actions">
+        <button className="primary" disabled={busy} onClick={connect}>{busy ? "Connecting…" : "Create & connect"}</button>
+        {hasProfiles && <button className="ghost" onClick={onCancel}>← Back</button>}
+      </div>
+    </>
+  );
+}
+
+function KaizenApp({ config, onResetConfig }) {
+  const [data, setData] = useState(null);
+  const [screen, setScreen] = useState("today");
+  const [syncState, setSyncState] = useState({ status: "syncing", at: null, err: null });
+  const [tweaks, setTweak] = useTweaks({ "theme": "paper", "showQuote": true });
+
+  useEffect(() => {
+    const t = config.theme || tweaks.theme || "paper";
+    document.body.className = t === "paper" ? "" : `theme-${t}`;
+  }, [config.theme, tweaks.theme]);
+
+  const fetchAll = useCallback(async () => {
+    setSyncState(s => ({ ...s, status: "syncing" }));
+    try {
+      const d = await loadAll(config);
+      setData(d);
+      setSyncState({ status: "ok", at: Date.now(), err: null });
+    } catch (e) {
+      setSyncState({ status: "error", at: Date.now(), err: e.message });
+    }
+  }, [config]);
+
+  useEffect(() => {
+    fetchAll();
+    const iv = setInterval(fetchAll, POLL_MS);
+    return () => clearInterval(iv);
+  }, [fetchAll]);
+
+  const quote = useMemo(() => {
+    const seed = todayKey().split("-").reduce((a, b) => a + parseInt(b, 10), 0);
+    return QUOTES[seed % QUOTES.length];
+  }, []);
+
+  if (!data) {
+    return (
+      <>
+        <SyncBanner state={syncState} onRefresh={fetchAll} onReset={onResetConfig} />
+        <div style={{ maxWidth: 560, margin: "80px auto", padding: 40 }}>
+          <div className="empty-state">
+            {syncState.status === "error"
+              ? <><span>Could not reach Supabase.</span><br/><span className="mono tiny" style={{ color: "var(--accent)" }}>{syncState.err}</span><br/><br/><button onClick={onResetConfig}>Reconfigure</button></>
+              : "Loading from Supabase…"}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const days = daysSince(data.startedOn);
+  const rate30 = completionRate(data.history, 30);
+
+  async function addJournal(body) {
+    const created = await postJournal(config, body);
+    if (created) await fetchAll();
+  }
+  async function addWeakness(body) {
+    const created = await postWeakness(config, body);
+    if (created) await fetchAll();
+  }
+
+  return (
+    <>
+      <SyncBanner state={syncState} onRefresh={fetchAll} onReset={onResetConfig} />
+      <div className="app">
+        <Sidebar screen={screen} setScreen={setScreen} days={days} />
+        <main className="main">
+          {screen === "today"    && <TodayScreen data={data} quote={quote} rate30={rate30} days={days} showQuote={tweaks.showQuote} />}
+          {screen === "habits"   && <HabitsScreen data={data} />}
+          {screen === "workouts" && <WorkoutsScreen data={data} />}
+          {screen === "focus"    && <FocusScreen data={data} config={config} onRefresh={fetchAll} />}
+          {screen === "wins"     && <WinsScreen data={data} />}
+          {screen === "ledger"   && <LedgerScreen data={data} addWeakness={addWeakness} />}
+          {screen === "journal"  && <JournalScreen data={data} addJournal={addJournal} />}
+        </main>
+        <KaizenTweaks tweaks={tweaks} setTweak={(k, v) => {
+          setTweak(k, v);
+          if (k === "theme") {
+            saveConfig({ ...config, theme: v });
+            document.body.className = v === "paper" ? "" : `theme-${v}`;
+          }
+        }} onResetConfig={onResetConfig} currentTheme={config.theme || tweaks.theme} />
+      </div>
+    </>
+  );
+}
+
+function SyncBanner({ state, onRefresh, onReset }) {
+  const ago = state.at ? Math.round((Date.now() - state.at) / 1000) : null;
+  const liveCls = state.status === "error" ? "live error" : state.status === "syncing" ? "live syncing" : "live";
+  const label = state.status === "error" ? "ERROR" : state.status === "syncing" ? "SYNCING" : "MIRRORING";
+  return (
+    <div className="sync-banner">
+      <div>
+        <span className={liveCls}></span>
+        {label}
+        {state.status === "ok" && ago !== null && <> · LAST SYNC {ago}s AGO</>}
+        {state.status === "error" && <> · {state.err}</>}
+      </div>
+      <div className="row" style={{ gap: 8 }}>
+        <button onClick={onRefresh}>↻ Refresh</button>
+        <button onClick={onReset}>Disconnect</button>
+      </div>
+    </div>
+  );
+}
+
+function Sidebar({ screen, setScreen, days }) {
+  return (
+    <aside className="sidebar">
+      <div className="brand">
+        <div className="brand-mark">Kaizen</div>
+        <div className="brand-sub">mirror · v3</div>
+        <div className="brand-kanji">改 善</div>
+      </div>
+      <nav className="nav">
+        {NAV.map(n => (
+          <button key={n.id} className={`nav-item ${screen === n.id ? "active" : ""}`} onClick={() => setScreen(n.id)}>
+            <span>{n.label}</span>
+            <span className="num">{n.num}</span>
+          </button>
+        ))}
+      </nav>
+      <div className="sidebar-foot">
+        <div>DAY {String(days).padStart(3, "0")}</div>
+        <div>OF THE PRACTICE</div>
+        <div style={{ marginTop: 10, opacity: 0.7 }}>"Each day, a little.<br/>Every day, again."</div>
+        <button
+          onClick={() => window.postMessage({ type: '__activate_edit_mode' }, '*')}
+          style={{ marginTop: 16, width: "100%", fontSize: 10, letterSpacing: "0.12em", padding: "6px 0", fontFamily: "var(--mono)", border: "1px solid var(--rule)", borderRadius: "var(--r)", background: "transparent", color: "var(--ink-3)", cursor: "pointer" }}>
+          TWEAKS
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+function TodayScreen({ data, quote, rate30, days, showQuote }) {
+  const tk = todayKey();
+  const todayDone = data.habits.filter(h => data.history[h.id]?.[tk] === true).length;
+  const todayTotal = data.habits.length;
+  const focusToday = data.focusSessions.find(f => f.date === tk)?.minutes || 0;
+  const longestStreak = Math.max(0, ...data.habits.map(h => streakFor(data.history, h.id)));
+  const dateStr = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+
+  const urgentGoals = (data.goals || [])
+    .filter(g => g.status === "ACTIVE" && g.targetDate)
+    .map(g => ({ ...g, daysLeft: Math.ceil((new Date(g.targetDate) - new Date()) / 86400000) }))
+    .filter(g => g.daysLeft <= 30)
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+
+  return (
+    <>
+      <div className="page-head">
+        <h1>Today<span className="read-only-tag">read · android writes</span></h1>
+        <div className="meta">{dateStr}<br/>Day {String(days).padStart(3, "0")} · {todayDone}/{todayTotal} · {focusToday}m focus</div>
+      </div>
+      <div className="banner">
+        <span>The Practice</span>
+        <span>30-day rate · {Math.round(rate30 * 100)}%</span>
+        <span>Longest streak · {longestStreak}d</span>
+        <span>Trajectory · {Math.pow(0.997 + rate30 * 0.018, 365).toFixed(2)}× / 365d</span>
+      </div>
+      <div className="dash">
+        <div className="col gap-24">
+          <section className="card">
+            <div className="card-head"><h2>The Compound</h2><span className="aside">365-day projection · log scale</span></div>
+            <CompoundChart rate30={rate30} daysIn={days} totalDays={365} />
+          </section>
+          <section className="card">
+            <div className="card-head"><h2>Today's Practice</h2><span className="aside">{todayDone}/{todayTotal}</span></div>
+            {data.habits.length === 0 ? <div className="empty-state">No habits yet. Add them in the Android app.</div> : (
+              <div className="habit-grid">
+                {data.habits.map(h => {
+                  const done = data.history[h.id]?.[tk] === true;
+                  const streak = streakFor(data.history, h.id);
+                  return (
+                    <div key={h.id} className="habit-row">
+                      <div className="habit-name">
+                        <span className="ic">{h.icon}</span>
+                        <span>{h.name}</span>
+                      </div>
+                      <div className="habit-streak">
+                        {streak > 0 ? <><span className="flame">●</span><span>{streak}d</span></> : <span className="muted">—</span>}
+                      </div>
+                      <div className={`check ${done ? "done" : ""}`} style={{ cursor: "default" }}>{done ? "✓" : ""}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+          {data.todayPlan && (
+            <section className="card">
+              <div className="card-head"><h2>Plan for the day</h2><span className="aside">from android</span></div>
+              <div style={{ fontFamily: "var(--serif)", fontSize: 17, fontStyle: "italic", lineHeight: 1.5, color: "var(--ink-2)" }}>{data.todayPlan}</div>
+            </section>
+          )}
+        </div>
+        <div className="col gap-24">
+          <section className="identity-card">
+            <div className="label">I am becoming</div>
+            <div className="statement">{data.commitment}</div>
+          </section>
+          {showQuote && <QuoteCard quote={quote} />}
+          <section className="card">
+            <div className="card-head"><h2>Focus today</h2><span className="aside">{focusToday}m</span></div>
+            <div className="bar"><span style={{ width: `${Math.min(100, focusToday / 120 * 100)}%` }} /></div>
+            <div className="muted tiny mono mt-24" style={{ letterSpacing: "0.12em", textTransform: "uppercase" }}>Lock in from the phone.</div>
+          </section>
+          {urgentGoals.length > 0 && (
+            <section className="card">
+              <div className="card-head"><h2>Deadlines</h2><span className="aside">next 30 days</span></div>
+              <div className="col" style={{ gap: 14 }}>
+                {urgentGoals.map(g => (
+                  <div key={g.id}>
+                    <div style={{ fontFamily: "var(--serif)", fontSize: 16, marginBottom: 4 }}>{g.title}</div>
+                    <div className="mono tiny" style={{ color: g.daysLeft <= 7 ? "var(--accent)" : g.daysLeft <= 14 ? "var(--gold)" : "var(--ink-3)", letterSpacing: "0.1em" }}>
+                      {g.daysLeft <= 0 ? "TODAY" : `${g.daysLeft}d LEFT`} · {g.targetDate}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+          {data.workouts[0] && (
+            <section className="card">
+              <div className="card-head"><h2>Last training</h2><span className="aside">{data.workouts[0].duration}m · {(data.workouts[0].day || "").toUpperCase()}</span></div>
+              <div style={{ fontFamily: "var(--serif)", fontSize: 17, marginBottom: 8 }}>{data.workouts[0].name}</div>
+              <div className="muted mono tiny" style={{ letterSpacing: "0.1em" }}>
+                {data.workouts[0].exercises.length} MOVEMENTS · {data.workouts[0].exercises.reduce((a, e) => a + e.sets.length, 0)} SETS
+              </div>
+            </section>
+          )}
+          {data.wins && data.wins[0] && (
+            <section className="card">
+              <div className="card-head"><h2>Latest win</h2><span className="aside">{data.wins[0].date}</span></div>
+              <div style={{ fontFamily: "var(--serif)", fontSize: 17, marginBottom: data.wins[0].description ? 6 : 0 }}>{data.wins[0].title}</div>
+              {data.wins[0].description && <div className="muted tiny" style={{ fontStyle: "italic", lineHeight: 1.5 }}>{data.wins[0].description}</div>}
+            </section>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function HabitsScreen({ data }) {
+  const rate30 = completionRate(data.history, 30);
+  if (data.habits.length === 0) {
+    return (<>
+      <div className="page-head"><h1>Habits<span className="read-only-tag">read</span></h1><div className="meta">No pillars yet</div></div>
+      <div className="empty-state">Add habits in the Android app — they'll appear here within 60s.</div>
+    </>);
+  }
+  return (
+    <>
+      <div className="page-head">
+        <h1>Habits<span className="read-only-tag">read</span></h1>
+        <div className="meta">{data.habits.length} pillars<br/>30-day rate · {Math.round(rate30 * 100)}%</div>
+      </div>
+      <div className="col gap-24">
+        {data.habits.map(h => {
+          const streak = streakFor(data.history, h.id);
+          let d = 0, t = 0;
+          for (let i = 0; i < 30; i++) {
+            const v = data.history[h.id]?.[dateKey(i)];
+            if (v === true) d++;
+            if (v === true || v === false) t++;
+          }
+          const last30 = t ? Math.round(d / t * 100) : 0;
+          return (
+            <section key={h.id} className="card">
+              <div className="row" style={{ justifyContent: "space-between", marginBottom: 14 }}>
+                <div className="row" style={{ gap: 14 }}>
+                  <span className="mono tiny muted" style={{ letterSpacing: "0.18em" }}>{h.icon}</span>
+                  <span style={{ fontFamily: "var(--serif)", fontSize: 22, letterSpacing: "-0.01em" }}>{h.name}</span>
+                </div>
+                <div className="row" style={{ gap: 12 }}>
+                  <span className="tag">{last30}% / 30d</span>
+                  <span className="tag accent">{streak}d streak</span>
                 </div>
               </div>
-              ${w.description ? `<div class="card-desc">${esc(w.description)}</div>` : ''}
-              <div class="card-date" style="margin-top:4px">${fmtDate(w.date)}</div>
+              <Heatmap history={data.history} habitId={h.id} days={90} />
+              <div className="row" style={{ justifyContent: "space-between", marginTop: 8 }}>
+                <span className="mono tiny muted" style={{ letterSpacing: "0.1em" }}>90 DAYS AGO</span>
+                <span className="mono tiny muted" style={{ letterSpacing: "0.1em" }}>TODAY</span>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function WorkoutsScreen({ data }) {
+  const dayColor = { push: "var(--ink)", pull: "var(--ink-2)", legs: "var(--ink-3)", skills: "var(--accent)", rest: "var(--paper-3)" };
+  const last14 = [];
+  for (let i = 13; i >= 0; i--) {
+    const k = dateKey(i), sess = data.workouts.find(w => w.date === k);
+    last14.push({ key: k, day: sess?.day || "rest" });
+  }
+  if (data.workouts.length === 0) {
+    return (<>
+      <div className="page-head"><h1>Training<span className="read-only-tag">read</span></h1><div className="meta">No sessions logged</div></div>
+      <div className="empty-state">Log workouts in the Android app.</div>
+    </>);
+  }
+  return (
+    <>
+      <div className="page-head">
+        <h1>Training<span className="read-only-tag">read</span></h1>
+        <div className="meta">Calisthenics · PPL + Skills<br/>{data.workouts.length} sessions logged</div>
+      </div>
+      <section className="card" style={{ marginBottom: 24 }}>
+        <div className="card-head"><h2>Rotation</h2><span className="aside">last 14 days</span></div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(14, 1fr)", gap: 4 }}>
+          {last14.map((d, i) => (
+            <div key={d.key} title={`${d.key} — ${d.day}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <div style={{ aspectRatio: "1", width: "100%", background: dayColor[d.day], border: i === 13 ? "2px solid var(--accent)" : "1px solid var(--rule)", borderRadius: 2 }} />
+              <span className="mono" style={{ fontSize: 9, color: "var(--ink-3)" }}>{d.day === "rest" ? "—" : d.day[0].toUpperCase()}</span>
             </div>
-          </div>
-        </div>`;
-    };
-    let html = `<div style="font-size:12px;color:var(--muted);margin-bottom:12px">${winsOnly.length} win${winsOnly.length!==1?'s':''} · ${lessons.length} lesson${lessons.length!==1?'s':''}</div>`;
-    if (winsOnly.length) html += `<div class="section-label">Wins</div>`            + winsOnly.map((w,i) => card(w, wins.indexOf(w))).join('');
-    if (lessons.length)  html += `<div class="section-label">Lessons Learned</div>` + lessons.map(w => card(w, wins.indexOf(w))).join('');
-    return html;
-  }
+          ))}
+        </div>
+        <div className="row" style={{ marginTop: 14, gap: 12, flexWrap: "wrap" }}>
+          {["push","pull","legs","skills"].map(d => (
+            <span key={d} className="row" style={{ gap: 6, fontSize: 11 }}>
+              <span style={{ width: 10, height: 10, background: dayColor[d], borderRadius: 1 }}></span>
+              <span className="muted" style={{ textTransform: "capitalize" }}>{d}</span>
+            </span>
+          ))}
+        </div>
+      </section>
+      <div className="col gap-24">
+        {data.workouts.slice(0, 10).map(w => (
+          <section key={w.id} className="card">
+            <div className="card-head">
+              <h2>{w.name}</h2>
+              <span className="aside">{w.date} · {w.duration}m · {(w.day || "").toUpperCase()}</span>
+            </div>
+            {w.exercises.map((ex, ei) => (
+              <div key={ei} className="exercise-block">
+                <div className="exercise-name">
+                  <span>{ex.name}</span>
+                  <span className="pr">{ex.sets.length} × SETS</span>
+                </div>
+                <div className="set-grid head" style={{ gridTemplateColumns: "30px 1fr 70px 100px 50px" }}>
+                  <span>SET</span><span></span><span>REPS</span><span>VARIANT</span><span>RPE</span>
+                </div>
+                {ex.sets.map((s, si) => (
+                  <div key={si} className="set-grid" style={{ gridTemplateColumns: "30px 1fr 70px 100px 50px" }}>
+                    <span className="mono muted">{si + 1}</span>
+                    <span></span>
+                    <span className="mono">{s.reps}</span>
+                    <span className="mono" style={{ fontSize: 12 }}>{s.load}</span>
+                    <span className="mono">{s.rpe}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </section>
+        ))}
+      </div>
+    </>
+  );
+}
 
-  // Quick delete without opening modal (from card 🗑️ button)
-  async function quickDelete(table, remoteId, label) {
-    if (!confirm(`Delete this ${label}?`)) return;
+function FocusScreen({ data, config, onRefresh }) {
+  const [overlay, setOverlay] = useState(null);
+  const [task, setTask] = useState("");
+  const [duration, setDuration] = useState(25);
+  const tk = todayKey();
+  const totalMin = data.focusSessions.reduce((s, f) => s + f.minutes, 0);
+  const sessionsToday = data.focusSessions.filter(f => f.date === tk).length;
+  const todayMin = data.focusSessions.filter(f => f.date === tk).reduce((s, f) => s + f.minutes, 0);
+  const last7 = data.focusSessions.slice(0, 7).reverse();
+  const max = Math.max(...last7.map(f => f.minutes), 60);
+
+  async function handleComplete(mins) {
+    setOverlay(null);
     try {
-      await apiDelete(table, remoteId);
-      toast('Deleted'); await loadAll();
-    } catch(e) { toast(e.message, true); }
+      await sbFetch(config, "focus_sessions", {
+        method: "POST",
+        headers: { "Prefer": "return=minimal" },
+        body: JSON.stringify({ user_id: config.userId, date: tk, minutes: mins, task: task || null, completed: true }),
+      });
+      await onRefresh();
+    } catch (e) { console.error("focus log failed:", e); }
   }
 
-  function panelHeader(countLabel, addLabel, addFn) {
-    return `<div class="panel-header"><span class="count-label">${countLabel}</span><button class="add-btn" onclick="${addFn}">+ ${addLabel}</button></div>`;
-  }
-
-  // ── Load all ───────────────────────────────────────────────────────────────
-  async function loadAll() {
-    ['journal','goals','wins'].forEach(id => document.getElementById(`panel-${id}`).innerHTML = spinner());
-    try {
-      const [j, g, w] = await Promise.all([
-        apiGet('journal_entries', 'date.desc'),
-        apiGet('goals',           'updated_at.desc'),
-        apiGet('wins',            'date.desc'),
-      ]);
-      _journal = j; _goals = g; _wins = w;
-
-      document.getElementById('panel-journal').innerHTML =
-        panelHeader(`${j.length} entr${j.length!==1?'ies':'y'}`, 'Entry', 'openJournalModal(null)') +
-        renderJournal(j);
-
-      document.getElementById('panel-goals').innerHTML =
-        panelHeader(`${g.filter(x=>x.status==='ACTIVE').length} active`, 'Goal', 'openGoalModal(null)') +
-        renderGoals(g);
-
-      document.getElementById('panel-wins').innerHTML =
-        panelHeader(`${w.length} total`, 'Log', 'openWinModal(null)') +
-        renderWins(w);
-
-      if (document.getElementById('panel-templates').classList.contains('active')) renderTemplate();
-
-    } catch(err) {
-      const msg = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Couldn't load data</div><div>${err.message}</div></div>`;
-      ['journal','goals','wins'].forEach(id => document.getElementById(`panel-${id}`).innerHTML = msg);
-    }
-  }
-
-  // ── Supernote templates ────────────────────────────────────────────────────
-  let _tplType = 'daily';
-
-  function selectTemplate(type) { _tplType = type; renderTemplate(); }
-
-  function renderTemplate() {
-    const p = document.getElementById('panel-templates');
-    const toolbar = `
-      <div class="tpl-toolbar">
-        <div class="tpl-sel-row">
-          <button class="tpl-sel${_tplType==='daily'?' active':''}"    onclick="selectTemplate('daily')">📋 Daily</button>
-          <button class="tpl-sel${_tplType==='weekly'?' active':''}"   onclick="selectTemplate('weekly')">🏆 Weekly</button>
-          <button class="tpl-sel${_tplType==='monthly'?' active':''}"  onclick="selectTemplate('monthly')">📅 Monthly</button>
-          <button class="tpl-sel${_tplType==='goals'?' active':''}"    onclick="selectTemplate('goals')">🎯 Goals</button>
-          <button class="tpl-sel${_tplType==='journal'?' active':''}"  onclick="selectTemplate('journal')">📖 Journal</button>
-        </div>
-        <button class="print-btn" onclick="window.print()">🖨️ Print / PDF</button>
-      </div>`;
-    const content = _tplType==='daily'   ? renderDailyTpl()
-                  : _tplType==='goals'   ? renderGoalsTpl(_goals)
-                  : _tplType==='weekly'  ? renderWeeklyTpl(_wins)
-                  : _tplType==='monthly' ? renderMonthlyTpl(_goals, _wins, _journal)
-                  : renderJournalTpl(_journal);
-    p.innerHTML = toolbar + content;
-  }
-
-  function renderDailyTpl() {
-    const now   = new Date();
-    const day   = now.toLocaleDateString('en-US',{weekday:'long'});
-    const date  = now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-    const cb    = n => Array(n).fill(0).map(()=>`<div class="tpl-cb-row"><span class="tpl-cb">□</span><div class="tpl-line"></div></div>`).join('');
-    const lines = n => Array(n).fill(0).map(()=>`<div class="tpl-write-line"></div>`).join('');
-    return `<div class="tpl-page">
-      <div class="tpl-header">
-        <div class="tpl-logo">K</div>
-        <div><div class="tpl-title">Daily Kaizen</div><div class="tpl-date">${day}, ${date}</div></div>
+  return (
+    <>
+      {overlay && <FocusOverlay minutes={overlay} task={task} sessionsToday={sessionsToday} onClose={() => setOverlay(null)} onComplete={handleComplete} />}
+      <div className="page-head">
+        <h1>Deep Work<span className="read-only-tag">web timer</span></h1>
+        <div className="meta">{data.focusSessions.length} sessions · {totalMin} min total<br/>Today · {sessionsToday} sessions · {todayMin}m</div>
       </div>
-      <div class="tpl-section-title">📊 Metrics</div>
-      <div class="tpl-metrics-row">
-        ${['Body Battery','WHOOP','HRV','Sleep','Steps'].map(m=>`<div class="tpl-metric"><div class="tpl-metric-label">${m}</div><div class="tpl-metric-box"></div></div>`).join('')}
-      </div>
-      <div class="tpl-two-col">
-        <div>
-          <div class="tpl-section-title">☀️ Morning Habits</div>${cb(6)}
+      <div className="dash">
+        <div className="col gap-24">
+          <section className="card">
+            <div className="card-head"><h2>Start a session</h2><span className="aside">locks screen</span></div>
+            <div className="focus-start-card">
+              <div>
+                <label style={{ display: "block", fontFamily: "var(--mono)", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 8 }}>Duration (minutes)</label>
+                <div className="focus-duration-row">
+                  {[15, 25, 45, 60, 90].map(m => (
+                    <button key={m} className={duration === m ? "primary" : "ghost"} onClick={() => setDuration(m)}>{m}m</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={{ display: "block", fontFamily: "var(--mono)", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 6 }}>Task (optional)</label>
+                <input type="text" value={task} onChange={e => setTask(e.target.value)} placeholder="What are you locking in on?" style={{ borderBottom: "1px solid var(--rule)", paddingBottom: 8 }} />
+              </div>
+              <button className="primary" onClick={() => setOverlay(duration)} style={{ alignSelf: "flex-start" }}>
+                Lock in — {duration}m
+              </button>
+            </div>
+          </section>
+          <section className="card">
+            <div className="card-head"><h2>Last 7 sessions</h2><span className="aside">focused minutes</span></div>
+            {last7.length === 0 ? <div className="empty-state">No focus sessions yet.</div> : (
+              <div className="col" style={{ gap: 16 }}>
+                {last7.map((f, i) => (
+                  <div key={i} className="row" style={{ gap: 16 }}>
+                    <span className="mono tiny muted" style={{ width: 80, letterSpacing: "0.1em" }}>{f.date.slice(5)}</span>
+                    <div className="bar" style={{ flex: 1 }}><span style={{ width: `${f.minutes / max * 100}%` }} /></div>
+                    <span className="mono tiny" style={{ width: 60, textAlign: "right" }}>{f.minutes}m{f.task ? " · " + f.task.slice(0, 12) : ""}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
-        <div>
-          <div class="tpl-section-title">🌙 Evening Habits</div>${cb(4)}
-          <div class="tpl-section-title" style="margin-top:10px">💊 Supplements / Meds</div>${cb(2)}
+        <div className="col gap-24">
+          <section className="identity-card">
+            <div className="label">The rule</div>
+            <div className="statement" style={{ fontSize: 22, fontStyle: "italic" }}>
+              "When you sit down, do not stand up until the timer ends. Boredom is information. Stay in it."
+            </div>
+          </section>
+          <section className="card">
+            <div className="card-head"><h2>Stats</h2><span className="aside">all time</span></div>
+            <div className="col" style={{ gap: 16 }}>
+              <div className="between"><span className="muted">Total sessions</span><span className="serif" style={{ fontSize: 24 }}>{data.focusSessions.length}</span></div>
+              <hr className="divider" style={{ margin: 0 }} />
+              <div className="between"><span className="muted">Total minutes</span><span className="serif" style={{ fontSize: 24 }}>{totalMin}</span></div>
+              <hr className="divider" style={{ margin: 0 }} />
+              <div className="between"><span className="muted">Average</span><span className="serif" style={{ fontSize: 24 }}>{Math.round(totalMin / Math.max(1, data.focusSessions.length))}m</span></div>
+              <hr className="divider" style={{ margin: 0 }} />
+              <div className="between"><span className="muted">Best session</span><span className="serif" style={{ fontSize: 24 }}>{Math.max(...data.focusSessions.map(f => f.minutes), 0)}m</span></div>
+            </div>
+          </section>
         </div>
       </div>
-      <div class="tpl-section-title">🏋️ Workout Log</div>
-      <table class="tpl-table">
-        <thead><tr><th>Exercise</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Notes</th></tr></thead>
-        <tbody>${Array(7).fill(0).map(()=>`<tr><td></td><td></td><td></td><td></td><td></td></tr>`).join('')}</tbody>
-      </table>
-      <div class="tpl-two-col" style="margin-top:12px">
-        <div><div class="tpl-section-title">✦ What went well</div>${lines(3)}</div>
-        <div><div class="tpl-section-title">↑ What to improve</div>${lines(3)}</div>
-      </div>
-      <div class="tpl-section-title" style="margin-top:10px">⬡ Tomorrow's 3 Priorities</div>
-      ${[1,2,3].map(n=>`<div class="tpl-cb-row"><span class="tpl-num">${n}.</span><div class="tpl-line"></div></div>`).join('')}
-      <div class="tpl-footer">kaizen · ${day.toLowerCase()} · daily discipline</div>
-    </div>`;
-  }
+    </>
+  );
+}
 
-  function renderGoalsTpl(goals) {
-    const date    = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-    const active  = goals.filter(g=>g.status==='ACTIVE');
-    const done    = goals.filter(g=>g.status==='COMPLETED');
-    return `<div class="tpl-page">
-      <div class="tpl-header">
-        <div class="tpl-logo">K</div>
-        <div><div class="tpl-title">Goals Review</div><div class="tpl-date">${date}</div></div>
-      </div>
-      <div class="tpl-section-title">🎯 Active Goals (${active.length})</div>
-      ${active.length===0 ? '<p class="tpl-empty">No active goals — add some in the app.</p>' : active.map(g=>`
-        <div class="tpl-goal-card">
-          <div class="tpl-goal-header">
-            <span class="tpl-goal-title">${esc(g.title)}</span>
-            ${g.target_date?`<span class="tpl-goal-date">📅 ${fmtDate(g.target_date)}</span>`:''}
-          </div>
-          ${g.description?`<div class="tpl-goal-desc">${esc(g.description)}</div>`:''}
-          <div class="tpl-goal-note">Progress / Notes</div>
-          <div class="tpl-write-line"></div><div class="tpl-write-line"></div>
-        </div>`).join('')}
-      ${done.length>0?`<div class="tpl-section-title" style="margin-top:12px">✓ Completed</div>
-        ${done.map(g=>`<div class="tpl-completed-goal">✓ ${esc(g.title)}</div>`).join('')}`:''}
-      <div class="tpl-footer">kaizen · goal mastery</div>
-    </div>`;
-  }
+function WinsScreen({ data }) {
+  const wins = data.wins || [], goals = data.goals || [];
+  const activeGoals = goals.filter(g => g.status === "ACTIVE");
+  const completedGoals = goals.filter(g => g.status === "COMPLETED");
+  const grouped = {};
+  wins.forEach(w => { const m = (w.date || "").slice(0, 7) || "undated"; if (!grouped[m]) grouped[m] = []; grouped[m].push(w); });
+  const months = Object.keys(grouped).sort().reverse();
 
-  function renderWeeklyTpl(wins) {
-    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-14);
-    const recent = wins.filter(w=>new Date(w.date+'T00:00:00')>=cutoff);
-    const wOnly  = recent.filter(w=>(w.type||'WIN')==='WIN');
-    const lessons= recent.filter(w=>w.type==='LOSS');
-    const date   = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-    const winCard= (w,cls='')=>`<div class="tpl-win-item${cls}">
-      <div class="tpl-win-title">${esc(w.title)}</div>
-      ${w.description?`<div class="tpl-win-desc">${esc(w.description)}</div>`:''}
-      <div class="tpl-win-date">${fmtDate(w.date)}</div></div>`;
-    const cb = n=>Array(n).fill(0).map(()=>`<div class="tpl-cb-row"><span class="tpl-cb">□</span><div class="tpl-line"></div></div>`).join('');
-    return `<div class="tpl-page">
-      <div class="tpl-header">
-        <div class="tpl-logo">K</div>
-        <div><div class="tpl-title">Weekly Review</div><div class="tpl-date">${date} · last 14 days</div></div>
+  return (
+    <>
+      <div className="page-head">
+        <h1>Wins<span className="read-only-tag">read</span></h1>
+        <div className="meta">{wins.length} wins logged<br/>{activeGoals.length} active goal{activeGoals.length === 1 ? "" : "s"}</div>
       </div>
-      <div class="tpl-two-col">
-        <div>
-          <div class="tpl-section-title">🏆 Wins (${wOnly.length})</div>
-          ${wOnly.length===0?'<p class="tpl-empty">Nothing logged</p>':wOnly.map(w=>winCard(w)).join('')}
+      <div className="dash">
+        <div className="col gap-24">
+          <section className="card">
+            <div className="card-head"><h2>The receipts</h2><span className="aside">{wins.length} total</span></div>
+            {wins.length === 0 ? <div className="empty-state">No wins yet. Log them in the Android app.</div>
+              : months.map(m => (
+                <div key={m} style={{ marginBottom: 24 }}>
+                  <div className="mono tiny muted" style={{ letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 12, paddingBottom: 6, borderBottom: "1px solid var(--rule)" }}>
+                    {m === "undated" ? "—" : new Date(m + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })} · {grouped[m].length}
+                  </div>
+                  <div className="col" style={{ gap: 14 }}>
+                    {grouped[m].map(w => (
+                      <div key={w.id} className="entry">
+                        <div className="when">{w.date}</div>
+                        <div style={{ fontFamily: "var(--serif)", fontSize: 19, letterSpacing: "-0.01em", marginBottom: w.description ? 6 : 0 }}>{w.title}</div>
+                        {w.description && <div className="body" style={{ fontStyle: "italic", opacity: 0.85 }}>{w.description}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+          </section>
         </div>
-        <div>
-          <div class="tpl-section-title">📖 Lessons (${lessons.length})</div>
-          ${lessons.length===0?'<p class="tpl-empty">Nothing logged</p>':lessons.map(w=>winCard(w,' tpl-lesson')).join('')}
-        </div>
-      </div>
-      <div class="tpl-section-title" style="margin-top:14px">✦ Reflection</div>
-      ${Array(4).fill(0).map(()=>`<div class="tpl-write-line" style="margin-bottom:14px"></div>`).join('')}
-      <div class="tpl-two-col" style="margin-top:8px">
-        <div><div class="tpl-section-title">Next week's focus</div>${cb(3)}</div>
-        <div><div class="tpl-section-title">Habits to lock in</div>${cb(3)}</div>
-      </div>
-      <div class="tpl-footer">kaizen · continuous improvement</div>
-    </div>`;
-  }
-
-  function renderMonthlyTpl(goals, wins, journal) {
-    const now     = new Date();
-    const y       = now.getFullYear(), m = now.getMonth();
-    const monthName = now.toLocaleDateString('en-US',{month:'long',year:'numeric'});
-    const monthStr  = `${y}-${String(m+1).padStart(2,'0')}`;
-    const prevStr   = m===0 ? `${y-1}-12` : `${y}-${String(m).padStart(2,'0')}`;
-
-    const mWins    = wins.filter(w=>(w.date||'').startsWith(monthStr) && (w.type||'WIN')==='WIN');
-    const mLessons = wins.filter(w=>(w.date||'').startsWith(monthStr) && w.type==='LOSS');
-    const mJournal = journal.filter(j=>(j.date||'').startsWith(monthStr));
-    const pJournal = journal.filter(j=>(j.date||'').startsWith(prevStr));
-
-    const active    = goals.filter(g=>g.status==='ACTIVE');
-    const completed = goals.filter(g=>g.status==='COMPLETED');
-
-    const avgMood = arr => arr.length===0 ? null : (arr.reduce((s,j)=>s+(j.mood||3),0)/arr.length).toFixed(1);
-    const moodEmoji = v => v>=4.5?'🔥':v>=3.5?'😄':v>=2.5?'🙂':v>=1.5?'😐':'😔';
-    const curAvg = avgMood(mJournal), prevAvg = avgMood(pJournal);
-    const moodTrend = curAvg && prevAvg ? (parseFloat(curAvg)>parseFloat(prevAvg)?'↑':parseFloat(curAvg)<parseFloat(prevAvg)?'↓':'→') : '';
-
-    const moodDist = [1,2,3,4,5].map(n=>({n, count:mJournal.filter(j=>(j.mood||3)===n).length}));
-    const moodLabels = {1:'😔 Low',2:'😐 Meh',3:'🙂 OK',4:'😄 Good',5:'🔥 Fire'};
-
-    const cb  = n => Array(n).fill(0).map(()=>`<div class="tpl-cb-row"><span class="tpl-cb">□</span><div class="tpl-line"></div></div>`).join('');
-    const lines = n => Array(n).fill(0).map(()=>`<div class="tpl-write-line"></div>`).join('');
-    const winCard = (w,cls='') => `<div class="tpl-win-item${cls}">
-      <div class="tpl-win-title">${esc(w.title)}</div>
-      ${w.description?`<div class="tpl-win-desc">${esc(w.description)}</div>`:''}
-      <div class="tpl-win-date">${fmtDate(w.date)}</div></div>`;
-
-    return `<div class="tpl-page">
-      <div class="tpl-header">
-        <div class="tpl-logo">K</div>
-        <div><div class="tpl-title">Monthly Review</div><div class="tpl-date">${monthName}</div></div>
-      </div>
-
-      <div class="tpl-stat-row">
-        <div class="tpl-stat"><div class="tpl-stat-num">${mWins.length}</div><div class="tpl-stat-label">Wins</div></div>
-        <div class="tpl-stat"><div class="tpl-stat-num">${mLessons.length}</div><div class="tpl-stat-label">Lessons</div></div>
-        <div class="tpl-stat"><div class="tpl-stat-num">${mJournal.length}</div><div class="tpl-stat-label">Journal Entries</div></div>
-        <div class="tpl-stat"><div class="tpl-stat-num">${active.length}</div><div class="tpl-stat-label">Active Goals</div></div>
-        <div class="tpl-stat"><div class="tpl-stat-num">${curAvg||'—'}${moodTrend?` <span style="font-size:13px;color:#888">${moodTrend}</span>`:''}</div><div class="tpl-stat-label">Avg Mood</div></div>
-      </div>
-
-      ${mJournal.length>0?`<div class="tpl-section-title">😊 Mood Distribution</div>
-      <div class="tpl-mood-row">
-        ${moodDist.map(d=>`<div class="tpl-mood-pill"><div class="tpl-mood-pill-num">${d.count}</div><div class="tpl-mood-pill-label">${moodLabels[d.n]}</div></div>`).join('')}
-      </div>`:''}
-
-      <div class="tpl-two-col">
-        <div>
-          <div class="tpl-section-title">🏆 Wins this month (${mWins.length})</div>
-          ${mWins.length===0?'<p class="tpl-empty">Nothing logged</p>':mWins.map(w=>winCard(w)).join('')}
-        </div>
-        <div>
-          <div class="tpl-section-title">📖 Lessons this month (${mLessons.length})</div>
-          ${mLessons.length===0?'<p class="tpl-empty">Nothing logged</p>':mLessons.map(w=>winCard(w,' tpl-lesson')).join('')}
+        <div className="col gap-24">
+          <section className="identity-card">
+            <div className="label">Why this exists</div>
+            <div className="statement" style={{ fontSize: 20, lineHeight: 1.4 }}>
+              The mind discounts good days and rehearses bad ones. The wins ledger corrects the imbalance.
+            </div>
+          </section>
+          {activeGoals.length > 0 && (
+            <section className="card">
+              <div className="card-head"><h2>Active goals</h2><span className="aside">{activeGoals.length}</span></div>
+              <div className="col" style={{ gap: 16 }}>
+                {activeGoals.map(g => {
+                  const daysLeft = g.targetDate ? Math.ceil((new Date(g.targetDate) - new Date()) / 86400000) : null;
+                  return (
+                    <div key={g.id}>
+                      <div style={{ fontFamily: "var(--serif)", fontSize: 17, marginBottom: 4 }}>{g.title}</div>
+                      {g.description && <div className="muted tiny" style={{ marginBottom: 4 }}>{g.description}</div>}
+                      {g.targetDate && (
+                        <div className="mono tiny" style={{ letterSpacing: "0.1em", color: daysLeft !== null && daysLeft <= 7 ? "var(--accent)" : daysLeft !== null && daysLeft <= 30 ? "var(--gold)" : "var(--ink-3)" }}>
+                          BY {g.targetDate.toUpperCase()}{daysLeft !== null ? ` · ${daysLeft}d` : ""}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+          {completedGoals.length > 0 && (
+            <section className="card">
+              <div className="card-head"><h2>Goals completed</h2><span className="aside">{completedGoals.length}</span></div>
+              <div className="col" style={{ gap: 12 }}>
+                {completedGoals.map(g => (
+                  <div key={g.id} className="row" style={{ justifyContent: "space-between", gap: 12 }}>
+                    <span style={{ fontFamily: "var(--serif)", fontSize: 16 }}>✓ {g.title}</span>
+                    {g.targetDate && <span className="mono tiny muted">{g.targetDate}</span>}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
+    </>
+  );
+}
 
-      <div class="tpl-section-title" style="margin-top:12px">🎯 Goals in progress (${active.length})</div>
-      ${active.length===0?'<p class="tpl-empty">No active goals</p>':active.map(g=>`
-        <div class="tpl-goal-card">
-          <div class="tpl-goal-header">
-            <span class="tpl-goal-title">${esc(g.title)}</span>
-            ${g.target_date?`<span class="tpl-goal-date">📅 ${fmtDate(g.target_date)}</span>`:''}
-          </div>
-          ${g.description?`<div class="tpl-goal-desc">${esc(g.description)}</div>`:''}
-        </div>`).join('')}
-
-      ${completed.length>0?`<div class="tpl-section-title">✓ Goals completed (${completed.length})</div>
-        ${completed.map(g=>`<div class="tpl-completed-goal">✓ ${esc(g.title)}</div>`).join('')}`:''}
-
-      <div class="tpl-section-title" style="margin-top:14px">✦ Monthly Reflection</div>
-      ${lines(4)}
-      <div class="tpl-two-col" style="margin-top:10px">
-        <div><div class="tpl-section-title">Next month's intentions</div>${cb(4)}</div>
-        <div><div class="tpl-section-title">Habits to build</div>${cb(4)}</div>
+function LedgerScreen({ data, addWeakness }) {
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  return (
+    <>
+      <div className="page-head">
+        <h1>The Ledger<span className="read-only-tag" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>web writes</span></h1>
+        <div className="meta">A record of slips · honesty over comfort<br/>{data.weaknesses.length} entries</div>
       </div>
-      <div class="tpl-footer">kaizen · ${monthName.toLowerCase()} · monthly review</div>
-    </div>`;
-  }
-
-  function renderJournalTpl(journal) {
-    const now      = new Date();
-    const monthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    const monthName = now.toLocaleDateString('en-US',{month:'long',year:'numeric'});
-    const entries  = journal.filter(j=>(j.date||'').startsWith(monthStr))
-                            .sort((a,b)=>a.date>b.date?1:-1);
-    const moodEmoji = n => ['','😔','😐','🙂','😄','🔥'][n]||'🙂';
-
-    return `<div class="tpl-page">
-      <div class="tpl-header">
-        <div class="tpl-logo">K</div>
-        <div><div class="tpl-title">Journal Log</div><div class="tpl-date">${monthName} · ${entries.length} ${entries.length===1?'entry':'entries'}</div></div>
+      <div className="dash">
+        <div className="col gap-24">
+          <section className="card">
+            <div className="card-head"><h2>Log a slip</h2><span className="aside">syncs to android</span></div>
+            <textarea value={body} onChange={e => setBody(e.target.value)}
+              placeholder="What happened? Be specific. No self-flagellation, no excuses."
+              style={{ minHeight: 100, padding: 14, border: "1px solid var(--rule)", borderRadius: 2 }} />
+            <div className="row" style={{ gap: 10, marginTop: 12 }}>
+              <button className="danger" disabled={busy || !body.trim()} onClick={async () => {
+                setBusy(true);
+                try { await addWeakness(body.trim()); setBody(""); } finally { setBusy(false); }
+              }}>{busy ? "Recording…" : "Record"}</button>
+              <span className="muted tiny mono" style={{ letterSpacing: "0.1em" }}>SHAME IS NOT THE POINT · NOTICING IS</span>
+            </div>
+          </section>
+          <section className="card">
+            <div className="card-head"><h2>Recent slips</h2><span className="aside">{data.weaknesses.length} total</span></div>
+            {data.weaknesses.length === 0 ? <div className="empty-state">No slips logged.</div>
+              : data.weaknesses.map(w => (
+                <div key={w.id} className="entry weakness">
+                  <div className="when">{new Date(w.when).toLocaleString()} · {(w.source || "android").toUpperCase()}</div>
+                  <div className="body">{w.body}</div>
+                </div>
+              ))}
+          </section>
+        </div>
+        <div className="col gap-24">
+          <section className="identity-card">
+            <div className="label">Why this exists</div>
+            <div className="statement" style={{ fontSize: 20, lineHeight: 1.4 }}>
+              You can't fix what you won't look at. The ledger turns invisible patterns into visible ones. The visible can be changed.
+            </div>
+          </section>
+        </div>
       </div>
-      ${entries.length===0?`<p class="tpl-empty" style="margin-top:16px">No journal entries for ${monthName}.</p>`
-        : entries.map(j=>`
-        <div class="tpl-journal-entry">
-          <div class="tpl-journal-meta">
-            <span class="tpl-journal-date">${fmtDate(j.date)}</span>
-            <span class="tpl-journal-mood">${moodEmoji(j.mood||3)}</span>
-            ${j.tags?`<span class="tpl-journal-tags">${esc(j.tags)}</span>`:''}
-          </div>
-          <div class="tpl-journal-text">${esc(j.text||'')}</div>
-        </div>`).join('')}
-      <div class="tpl-footer">kaizen · ${monthName.toLowerCase()} · journal</div>
-    </div>`;
-  }
+    </>
+  );
+}
 
-  function switchTab(name) {
-    const names = ['journal','goals','wins','templates'];
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', names[i] === name));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.getElementById(`panel-${name}`).classList.add('active');
-    if (name === 'templates') renderTemplate();
-  }
+function JournalScreen({ data, addJournal }) {
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  return (
+    <>
+      <div className="page-head">
+        <h1>Journal<span className="read-only-tag" style={{ borderColor: "var(--accent)", color: "var(--accent)" }}>web writes</span></h1>
+        <div className="meta">{data.journal.length} entries<br/>A record of the practice</div>
+      </div>
+      <div className="dash">
+        <div className="col gap-24">
+          <section className="card">
+            <div className="card-head"><h2>Tonight's reflection</h2><span className="aside">syncs to android</span></div>
+            <textarea value={body} onChange={e => setBody(e.target.value)}
+              placeholder="What did I do well today? What did I avoid? What is one thing I will change tomorrow?"
+              style={{ minHeight: 160, padding: 16, border: "1px solid var(--rule)", borderRadius: 2, fontFamily: "var(--serif)", fontSize: 17, lineHeight: 1.5, fontStyle: "italic" }} />
+            <div className="row" style={{ marginTop: 12 }}>
+              <button className="primary" disabled={busy || !body.trim()} onClick={async () => {
+                setBusy(true);
+                try { await addJournal(body.trim()); setBody(""); } finally { setBusy(false); }
+              }}>{busy ? "Recording…" : "Record"}</button>
+            </div>
+          </section>
+          <section className="card">
+            <div className="card-head"><h2>Past entries</h2><span className="aside">{data.journal.length}</span></div>
+            {data.journal.length === 0 ? <div className="empty-state">No entries yet.</div>
+              : data.journal.map(j => (
+                <div key={j.id} className="entry">
+                  <div className="when">{new Date(j.when).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · {(j.source || "android").toUpperCase()}</div>
+                  <div className="body">{j.body}</div>
+                </div>
+              ))}
+          </section>
+        </div>
+        <div className="col gap-24">
+          <section className="quote-card">
+            <div className="quote-text">"Every night, before I let my body sleep, I ask it: what fault of yours have you mended today? What vice resisted? In what way are you better?"</div>
+            <div className="quote-attr">— Seneca · adapted</div>
+          </section>
+          <section className="card">
+            <div className="card-head"><h2>Three prompts</h2><span className="aside">if stuck</span></div>
+            <div className="col" style={{ gap: 16, fontFamily: "var(--serif)", fontSize: 16, lineHeight: 1.5, fontStyle: "italic" }}>
+              <div>What did I avoid today, and why?</div>
+              <hr className="divider" style={{ margin: 0 }} />
+              <div>What was the hardest right thing I did?</div>
+              <hr className="divider" style={{ margin: 0 }} />
+              <div>What would tomorrow's better version of me have done differently?</div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </>
+  );
+}
 
-  loadAll();
+function KaizenTweaks({ tweaks, setTweak, onResetConfig, currentTheme }) {
+  return (
+    <TweaksPanel title="Tweaks">
+      <TweakSection label="Aesthetic">
+        <TweakRadio
+          label="Theme"
+          value={currentTheme || "paper"}
+          options={[{ label: "Paper", value: "paper" }, { label: "Ink", value: "ink" }, { label: "Forge", value: "forge" }]}
+          onChange={(v) => setTweak("theme", v)}
+        />
+        <TweakToggle label="Show daily quote" value={tweaks.showQuote} onChange={(v) => setTweak("showQuote", v)} />
+      </TweakSection>
+      <TweakSection label="Connection">
+        <TweakButton label="Disconnect Supabase" onClick={onResetConfig} />
+      </TweakSection>
+    </TweaksPanel>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
 </body>
 </html>

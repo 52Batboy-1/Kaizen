@@ -19,6 +19,51 @@ import androidx.compose.ui.unit.*
 import com.kaizen.app.data.*
 import com.kaizen.app.ui.theme.*
 
+// ── Warm-up / Cool-down data ──────────────────────────────────────────────
+
+data class MobilityExercise(val name: String, val duration: String, val cue: String)
+
+private fun warmUp(type: WorkoutType): List<MobilityExercise> = when (type) {
+    WorkoutType.PUSH -> listOf(
+        MobilityExercise("Arm Circles",    "30 sec each way", "Loose shoulder — progressively increase the circle size"),
+        MobilityExercise("Wall Slides",    "10 reps",         "Forearms on wall, slide up keeping contact. Retract shoulder blades at the top"),
+        MobilityExercise("Chest Opener",   "30 sec hold",     "Interlace hands behind back, drive elbows together, lift"),
+        MobilityExercise("Cat-Cow",        "10 reps",         "Full spinal flexion (round) then extension (arch) — slow and deliberate"),
+    )
+    WorkoutType.PULL -> listOf(
+        MobilityExercise("Dead Hang",          "20–30 sec",   "Pack shoulders DOWN. Breathe slowly. Let the spine decompress"),
+        MobilityExercise("Thoracic Rotation",  "8 each side", "Thread-needle position. Stack rotation from upper back — not lower"),
+        MobilityExercise("Arm Swings",         "30 sec",      "Cross-body and open alternating. Loose and rhythmic. Warm the rotator cuff"),
+        MobilityExercise("Scapular CARs",      "5 each",      "Full shoulder blade circumduction — up, back, down, forward"),
+    )
+    WorkoutType.LEGS -> listOf(
+        MobilityExercise("Hip Circles",        "10 each leg", "Large controlled circles. Weight fully on one leg. Stabilise the stance"),
+        MobilityExercise("Leg Swings",         "10 each",     "Front/back then lateral. Tall posture — brace the standing hip"),
+        MobilityExercise("Ankle Rolls",        "10 each",     "Full circumduction. Point, circle outward, flex, circle inward"),
+        MobilityExercise("Squat to Stand",     "8 reps",      "Reach overhead at the top. Sink deep and BREATHE at the bottom"),
+    )
+    WorkoutType.FULL_BODY -> listOf(
+        MobilityExercise("Jumping Jacks",      "45 sec",      "Get blood moving. Tall posture, land softly on the balls of your feet"),
+        MobilityExercise("Hip Circles",        "8 each leg",  "Large, slow, controlled. Find end range on every rep"),
+        MobilityExercise("Arm Circles",        "20 sec",      "Build from small to large. Both directions"),
+        MobilityExercise("Squat to Stand",     "8 reps",      "Reach overhead. Full depth. Breathe at the bottom"),
+    )
+    WorkoutType.CARDIO -> listOf(
+        MobilityExercise("March in Place",     "45 sec",      "Drive knees up. Swing arms. Tall posture. Get warm"),
+        MobilityExercise("Hip Circles",        "8 each",      "Open the hip joint before loading it"),
+        MobilityExercise("Arm Swings",         "30 sec",      "Cross-body, loose and rhythmic"),
+        MobilityExercise("High Knees (slow)", "30 sec",       "Controlled knee drive. Land softly. Build to full speed"),
+    )
+}
+
+private val coolDown: List<MobilityExercise> = listOf(
+    MobilityExercise("Forward Fold",          "45 sec",       "Soft knees. Let gravity take you. Nod yes and no to release the neck"),
+    MobilityExercise("Hip Flexor Stretch",    "30 sec each",  "Lunge position. Tuck the pelvis, drive the back hip DOWN and forward"),
+    MobilityExercise("Figure-4 Stretch",      "30 sec each",  "Lie on back. Cross ankle over knee. Pull the loop. Breathe into the glute"),
+    MobilityExercise("Doorframe Chest Stretch","30 sec",      "Forearm on frame at 90°. Step through. Feel the pec stretch — not shoulder"),
+    MobilityExercise("Child's Pose",          "60 sec",       "Arms forward or alongside the body. Breathe wide into the back"),
+)
+
 // ── Workout exercise data ─────────────────────────────────────────────────
 
 data class WExercise(
@@ -193,11 +238,14 @@ fun ActiveWorkoutSheet(
     }
     val mainExercises = exercises.filter { !it.isCore }
     val coreExercises = workoutType.coreCircuit   // from Models.kt
+    val warmUpList    = remember(workoutType) { warmUp(workoutType) }
 
-    val setsCompleted = remember { mutableStateMapOf<Int, Int>() }
+    val setsCompleted    = remember { mutableStateMapOf<Int, Int>() }
+    var warmUpCompleted  = remember { mutableStateMapOf<Int, Boolean>() }
+    var coolDownCompleted = remember { mutableStateMapOf<Int, Boolean>() }
     var restingAfter  by remember { mutableStateOf<Int?>(null) }
     var restSeconds   by remember { mutableIntStateOf(defaultRestSecs.coerceAtLeast(90)) }
-    var expandedIndex by remember { mutableIntStateOf(0) }
+    var expandedIndex by remember { mutableIntStateOf(-1) }  // -1 = warm-up open first
 
     val wColor    = workoutType.color()
     val totalSets = mainExercises.size * setsPerExercise + coreExercises.sumOf { it.sets }
@@ -269,11 +317,20 @@ fun ActiveWorkoutSheet(
                     shape = RoundedCornerShape(20.dp), color = wColor.copy(0.10f), border = BorderStroke(1.dp, wColor.copy(0.3f))) {
                     Box(modifier = Modifier.padding(20.dp), contentAlignment = Alignment.Center) {
                         if (restingAfter != null) {
+                            val idx = restingAfter!!
+                            val nextEx = when {
+                                idx < mainExercises.size -> mainExercises[idx]
+                                else                     -> null
+                            }
+                            val setsDone = setsCompleted[idx] ?: 0
+                            val setsLeft = if (idx < mainExercises.size) setsPerExercise - setsDone else 0
                             RestTimer(
-                                initialSeconds = restSeconds,
-                                accentColor    = wColor,
-                                onFinished     = { restingAfter = null },
-                                onSkip         = { restingAfter = null },
+                                initialSeconds     = restSeconds,
+                                accentColor        = wColor,
+                                nextExerciseName   = nextEx?.name,
+                                nextRepsOrDuration = nextEx?.let { "${setsLeft} set${if(setsLeft!=1)"s" else ""} · ${it.repsOrDuration}" },
+                                onFinished         = { restingAfter = null },
+                                onSkip             = { restingAfter = null },
                             )
                         }
                     }
@@ -286,6 +343,12 @@ fun ActiveWorkoutSheet(
                 contentPadding  = PaddingValues(horizontal = 22.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+
+                // Warm-up
+                item { SectionLabel("🔥 WARM-UP", wColor) }
+                itemsIndexed(warmUpList) { i, ex ->
+                    MobilityExerciseCard(ex, wColor, warmUpCompleted[i] == true) { warmUpCompleted[i] = !(warmUpCompleted[i] ?: false) }
+                }
 
                 // Main exercises
                 item { SectionLabel("MAIN EXERCISES", wColor) }
@@ -337,6 +400,12 @@ fun ActiveWorkoutSheet(
                             if (newDone >= cex.sets) restingAfter = null
                         },
                     )
+                }
+
+                // Cool-down
+                item { SectionLabel("🧊 COOL-DOWN", wColor) }
+                itemsIndexed(coolDown) { i, ex ->
+                    MobilityExerciseCard(ex, wColor, coolDownCompleted[i] == true) { coolDownCompleted[i] = !(coolDownCompleted[i] ?: false) }
                 }
 
                 // Finish button
@@ -527,5 +596,50 @@ private fun PRLogRow(exerciseName: String, onLog: (String) -> Unit) {
         ) {
             Text("Save", modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), fontSize = 11.sp, color = Color(0xFFFFE66D), fontWeight = FontWeight.Bold)
         }
+    }
+}
+
+// ── Mobility exercise card (warm-up / cool-down) ───────────────────────────
+
+@Composable
+private fun MobilityExerciseCard(
+    exercise: MobilityExercise,
+    accentColor: Color,
+    done: Boolean,
+    onToggle: () -> Unit,
+) {
+    val bg by animateColorAsState(if (done) accentColor.copy(0.10f) else K.Card, tween(250), label = "mbg")
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle),
+        shape    = RoundedCornerShape(14.dp),
+        color    = bg,
+        border   = BorderStroke(1.dp, if (done) accentColor.copy(0.35f) else K.Border),
+    ) {
+        Row(
+            modifier          = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Surface(
+                shape  = RoundedCornerShape(8.dp),
+                color  = if (done) accentColor.copy(0.3f) else accentColor.copy(0.10f),
+                modifier = Modifier.size(32.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(if (done) "✓" else "○",
+                        fontSize = if (done) 14.sp else 16.sp, fontWeight = FontWeight.Bold,
+                        color = if (done) Color.Black else accentColor.copy(0.6f))
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(exercise.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                    color = if (done) K.Muted else K.Text)
+                Text(exercise.duration, fontSize = 10.sp, color = K.Muted)
+            }
+        }
+    }
+    if (!done) {
+        Text("  💡 ${exercise.cue}", fontSize = 10.sp, color = accentColor.copy(0.7f),
+            modifier = Modifier.padding(start = 4.dp, bottom = 2.dp), lineHeight = 14.sp)
     }
 }

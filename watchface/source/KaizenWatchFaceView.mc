@@ -194,9 +194,9 @@ class KaizenWatchFaceView extends WatchUi.WatchFace {
 
     // Days since 2024-01-01 — same epoch the Android app uses
     private function daysSinceEpoch() as Lang.Number {
-        var epoch = new Time.Moment(1704067200l);
+        var epoch = new Time.Moment(1704067200);
         var diff  = Time.now().subtract(epoch);
-        return (diff.value() / 86400l).toNumber();
+        return (diff.value() / 86400).toNumber();
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

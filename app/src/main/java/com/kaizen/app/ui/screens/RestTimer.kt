@@ -21,6 +21,8 @@ import kotlinx.coroutines.delay
 fun RestTimer(
     initialSeconds: Int,
     accentColor: Color,
+    nextExerciseName: String? = null,
+    nextRepsOrDuration: String? = null,
     onFinished: () -> Unit,
     onSkip: () -> Unit,
 ) {
@@ -108,6 +110,31 @@ fun RestTimer(
 
         // Min 90s note
         Text("Min 90s · Tap + to extend", fontSize = 9.sp, color = accentColor.copy(0.4f))
+
+        // Next up preview
+        if (nextExerciseName != null) {
+            androidx.compose.material3.Surface(
+                shape  = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                color  = accentColor.copy(0.10f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(0.25f)),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                androidx.compose.foundation.layout.Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text("UP NEXT", fontSize = 8.sp, fontWeight = FontWeight.Bold,
+                        color = accentColor.copy(0.6f),
+                        letterSpacing = 2.sp, modifier = Modifier.width(56.dp))
+                    androidx.compose.foundation.layout.Column {
+                        Text(nextExerciseName, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = accentColor)
+                        if (nextRepsOrDuration != null)
+                            Text(nextRepsOrDuration, fontSize = 11.sp, color = accentColor.copy(0.7f))
+                    }
+                }
+            }
+        }
 
         // Controls
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

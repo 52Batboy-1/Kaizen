@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
@@ -56,6 +57,39 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/kaizen_widget_info"/>
+        </receiver>
+
+        <receiver
+            android:name=".widget.KaizenStreaksWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/kaizen_streaks_widget_info"/>
+        </receiver>
+
+        <receiver
+            android:name=".widget.KaizenWinsWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/kaizen_wins_widget_info"/>
+        </receiver>
+
+        <receiver
+            android:name=".widget.KaizenGoalsWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/kaizen_goals_widget_info"/>
         </receiver>
     </application>
 

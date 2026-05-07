@@ -17,31 +17,51 @@ import com.kaizen.app.data.*
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.flow.first
 
-class KaizenWidget : GlanceAppWidget() {
+// ── Shared colours ────────────────────────────────────────────────────────────
+
+private val BG     = Color(0xFF04040C)
+private val BG2    = Color(0xFF0D0D18)
+private val GOLD   = Color(0xFFC9A84C)
+private val TEXT   = Color(0xFFF0ECDF)
+private val MUTED  = Color(0xFF5A5470)
+private val GREEN  = Color(0xFF00DBA8)
+private val ORANGE = Color(0xFFFF9F43)
+private val BLUE   = Color(0xFF60A5FA)
+private val RED    = Color(0xFFF87171)
+
+private fun sp(v: Float) = androidx.compose.ui.unit.TextUnit(v, androidx.compose.ui.unit.TextUnitType.Sp)
+
+// ── 1. Today Widget ───────────────────────────────────────────────────────────
+
+class KaizenTodayWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val db   = KaizenDatabase.getInstance(context)
-        val dao  = db.dao()
-        val date = LocalDate.now().toString()
+        val db      = KaizenDatabase.getInstance(context)
+        val dao     = db.dao()
+        val prefs   = UserPrefs(context)
+        val date    = LocalDate.now().toString()
+        val today   = LocalDate.now()
 
-        val workouts  = dao.allWorkouts()
-        val latestBW  = dao.latestBodyweight()
-        val todayLog  = workouts.firstOrNull { it.date == date }
-        val sessions  = workouts.filter {
-            val d = runCatching { LocalDate.parse(it.date) }.getOrNull() ?: return@filter false
-            ChronoUnit.DAYS.between(d, LocalDate.now()) <= 30
-        }.size
+        val workouts = dao.allWorkouts()
+        val latestBW = dao.latestBodyweight()
+        val todayLog = workouts.firstOrNull { it.date == date }
+        val sessions = workouts.count {
+            runCatching { ChronoUnit.DAYS.between(LocalDate.parse(it.date), today) <= 30 }.getOrDefault(false)
+        }
 
-        val epoch     = LocalDate.of(2024, 1, 1)
-        val dayOffset = ChronoUnit.DAYS.between(epoch, LocalDate.now()).toInt()
-        val rotation  = listOf(WorkoutType.PUSH, WorkoutType.PULL, WorkoutType.LEGS, null)
-        val scheduled = rotation[((dayOffset % rotation.size) + rotation.size) % rotation.size]
+        val tier        = prefs.currentTier.first()
+        val currentWeek = prefs.currentWeek.first()
+        val scheduled   = scheduledWorkoutForWidget(today, tier, currentWeek)
+
+        val habits    = dao.allHabitsWithCompletions().first()
+        val doneToday = habits.count { hwc -> hwc.completions.any { it.date == date } }
 
         provideContent {
             Box(
                 modifier         = GlanceModifier
                     .fillMaxSize()
-                    .background(Color(0xFF04040C))
+                    .background(BG)
                     .cornerRadius(20)
                     .clickable(actionStartActivity<MainActivity>()),
                 contentAlignment = Alignment.TopStart,
@@ -50,91 +70,59 @@ class KaizenWidget : GlanceAppWidget() {
                     modifier          = GlanceModifier.fillMaxSize().padding(16.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
-                    // Header
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Kaizen", style = TextStyle(
-                            color = ColorProvider(Color(0xFFC9A84C)),
-                            fontSize = androidx.compose.ui.unit.TextUnit(22f, androidx.compose.ui.unit.TextUnitType.Sp),
-                            fontWeight = FontWeight.Bold,
-                        ))
+                        Text("K", style = TextStyle(color = ColorProvider(GOLD), fontSize = sp(20f), fontWeight = FontWeight.Bold))
+                        Text("aizen", style = TextStyle(color = ColorProvider(TEXT), fontSize = sp(20f), fontWeight = FontWeight.Bold))
                         Spacer(GlanceModifier.defaultWeight())
                         Text(
-                            LocalDate.now().dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() },
-                            style = TextStyle(
-                                color = ColorProvider(Color(0xFF5A5470)),
-                                fontSize = androidx.compose.ui.unit.TextUnit(11f, androidx.compose.ui.unit.TextUnitType.Sp),
-                            )
+                            today.dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() },
+                            style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(11f))
                         )
                     }
 
-                    Spacer(GlanceModifier.height(12.dp))
+                    Spacer(GlanceModifier.height(10.dp))
 
-                    // Workout
                     if (scheduled != null) {
                         Text(
                             "${scheduled.emoji}  ${scheduled.label} Day",
-                            style = TextStyle(
-                                color      = ColorProvider(Color(0xFFF0ECDF)),
-                                fontSize   = androidx.compose.ui.unit.TextUnit(16f, androidx.compose.ui.unit.TextUnitType.Sp),
-                                fontWeight = FontWeight.Bold,
-                            )
+                            style = TextStyle(color = ColorProvider(TEXT), fontSize = sp(15f), fontWeight = FontWeight.Bold)
                         )
-                        Spacer(GlanceModifier.height(4.dp))
-                        Text(
-                            scheduled.muscles,
-                            style = TextStyle(
-                                color    = ColorProvider(Color(0xFF5A5470)),
-                                fontSize = androidx.compose.ui.unit.TextUnit(10f, androidx.compose.ui.unit.TextUnitType.Sp),
-                            )
-                        )
-                        Spacer(GlanceModifier.height(10.dp))
+                        Spacer(GlanceModifier.height(3.dp))
+                        Text(scheduled.muscles, style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(10f)))
+                        Spacer(GlanceModifier.height(8.dp))
                         Text(
                             if (todayLog != null) "▶ IN PROGRESS" else "TAP TO START →",
                             style = TextStyle(
-                                color      = ColorProvider(if (todayLog != null) Color(0xFF00DBA8) else Color(0xFF04040C)),
-                                fontSize   = androidx.compose.ui.unit.TextUnit(11f, androidx.compose.ui.unit.TextUnitType.Sp),
+                                color      = ColorProvider(if (todayLog != null) GREEN else BG),
+                                fontSize   = sp(11f),
                                 fontWeight = FontWeight.Bold,
                             ),
                             modifier = GlanceModifier
-                                .background(if (todayLog != null) Color(0x2600DBA8) else Color(0xFFC9A84C))
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .background(if (todayLog != null) Color(0x2600DBA8) else GOLD)
+                                .padding(horizontal = 12.dp, vertical = 5.dp)
                                 .cornerRadius(10),
                         )
                     } else {
-                        Text("Rest day 😴", style = TextStyle(
-                            color = ColorProvider(Color(0xFF5A5470)),
-                            fontSize = androidx.compose.ui.unit.TextUnit(14f, androidx.compose.ui.unit.TextUnitType.Sp),
-                        ))
+                        Text("Rest day 😴", style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(14f)))
                     }
 
                     Spacer(GlanceModifier.defaultWeight())
 
-                    // Stats row
                     Row(modifier = GlanceModifier.fillMaxWidth()) {
                         Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("$sessions", style = TextStyle(
-                                color = ColorProvider(Color(0xFFFF9F43)),
-                                fontSize = androidx.compose.ui.unit.TextUnit(18f, androidx.compose.ui.unit.TextUnitType.Sp),
-                                fontWeight = FontWeight.Bold,
-                            ))
-                            Text("sessions", style = TextStyle(
-                                color = ColorProvider(Color(0xFF5A5470)),
-                                fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp),
-                            ))
+                            Text("$doneToday/${habits.size}", style = TextStyle(color = ColorProvider(GREEN), fontSize = sp(17f), fontWeight = FontWeight.Bold))
+                            Text("habits", style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(9f)))
+                        }
+                        Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("$sessions", style = TextStyle(color = ColorProvider(ORANGE), fontSize = sp(17f), fontWeight = FontWeight.Bold))
+                            Text("sessions", style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(9f)))
                         }
                         Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 if (latestBW != null) "${"%.1f".format(latestBW.weightKg)}kg" else "—",
-                                style = TextStyle(
-                                    color = ColorProvider(Color(0xFF60A5FA)),
-                                    fontSize = androidx.compose.ui.unit.TextUnit(18f, androidx.compose.ui.unit.TextUnitType.Sp),
-                                    fontWeight = FontWeight.Bold,
-                                )
+                                style = TextStyle(color = ColorProvider(BLUE), fontSize = sp(17f), fontWeight = FontWeight.Bold)
                             )
-                            Text("bodyweight", style = TextStyle(
-                                color = ColorProvider(Color(0xFF5A5470)),
-                                fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp),
-                            ))
+                            Text("weight", style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(9f)))
                         }
                     }
                 }
@@ -144,5 +132,267 @@ class KaizenWidget : GlanceAppWidget() {
 }
 
 class KaizenWidgetReceiver : GlanceAppWidgetReceiver() {
-    override val glanceAppWidget: GlanceAppWidget = KaizenWidget()
+    override val glanceAppWidget: GlanceAppWidget = KaizenTodayWidget()
+}
+
+// ── 2. Streaks Widget ─────────────────────────────────────────────────────────
+
+class KaizenStreaksWidget : GlanceAppWidget() {
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val db    = KaizenDatabase.getInstance(context)
+        val dao   = db.dao()
+        val date  = LocalDate.now().toString()
+
+        val habits = dao.allHabitsWithCompletions().first()
+            .sortedByDescending { it.habit.streak }
+            .take(5)
+
+        provideContent {
+            Box(
+                modifier         = GlanceModifier
+                    .fillMaxSize()
+                    .background(BG)
+                    .cornerRadius(20)
+                    .clickable(actionStartActivity<MainActivity>()),
+                contentAlignment = Alignment.TopStart,
+            ) {
+                Column(
+                    modifier = GlanceModifier.fillMaxSize().padding(16.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("🔥", style = TextStyle(fontSize = sp(16f)))
+                        Spacer(GlanceModifier.width(6.dp))
+                        Text("Streaks", style = TextStyle(color = ColorProvider(GOLD), fontSize = sp(16f), fontWeight = FontWeight.Bold))
+                    }
+
+                    Spacer(GlanceModifier.height(10.dp))
+
+                    if (habits.isEmpty()) {
+                        Text("No habits yet — add some in the app.", style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(11f)))
+                    } else {
+                        habits.forEach { hwc ->
+                            val doneToday = hwc.completions.any { it.date == date }
+                            val streakColor = when {
+                                hwc.habit.streak >= 14 -> ORANGE
+                                hwc.habit.streak >= 7  -> GOLD
+                                else                   -> BLUE
+                            }
+                            Row(
+                                modifier          = GlanceModifier.fillMaxWidth().padding(vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    if (doneToday) "✓" else "·",
+                                    style = TextStyle(
+                                        color      = ColorProvider(if (doneToday) GREEN else MUTED),
+                                        fontSize   = sp(13f),
+                                        fontWeight = FontWeight.Bold,
+                                    ),
+                                    modifier = GlanceModifier.width(16.dp),
+                                )
+                                Text(
+                                    hwc.habit.name,
+                                    style    = TextStyle(color = ColorProvider(if (doneToday) TEXT else MUTED), fontSize = sp(12f)),
+                                    modifier = GlanceModifier.defaultWeight(),
+                                )
+                                Text(
+                                    "${hwc.habit.streak}d",
+                                    style = TextStyle(color = ColorProvider(streakColor), fontSize = sp(12f), fontWeight = FontWeight.Bold),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+class KaizenStreaksWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = KaizenStreaksWidget()
+}
+
+// ── 3. Wins & Lessons Widget ──────────────────────────────────────────────────
+
+class KaizenWinsWidget : GlanceAppWidget() {
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val db   = KaizenDatabase.getInstance(context)
+        val dao  = db.dao()
+
+        val all     = dao.wins().first()
+        val latestWin    = all.lastOrNull { (it.type == WinType.WIN) }
+        val latestLesson = all.lastOrNull { it.type == WinType.LOSS }
+
+        provideContent {
+            Box(
+                modifier         = GlanceModifier
+                    .fillMaxSize()
+                    .background(BG)
+                    .cornerRadius(20)
+                    .clickable(actionStartActivity<MainActivity>()),
+                contentAlignment = Alignment.TopStart,
+            ) {
+                Column(
+                    modifier = GlanceModifier.fillMaxSize().padding(16.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("🏆", style = TextStyle(fontSize = sp(15f)))
+                        Spacer(GlanceModifier.width(6.dp))
+                        Text("Wins & Lessons", style = TextStyle(color = ColorProvider(GOLD), fontSize = sp(15f), fontWeight = FontWeight.Bold))
+                    }
+
+                    Spacer(GlanceModifier.height(12.dp))
+
+                    // Latest Win
+                    Text("WIN", style = TextStyle(color = ColorProvider(GREEN), fontSize = sp(8f), fontWeight = FontWeight.Bold))
+                    Spacer(GlanceModifier.height(3.dp))
+                    if (latestWin != null) {
+                        Text(latestWin.title, style = TextStyle(color = ColorProvider(TEXT), fontSize = sp(13f), fontWeight = FontWeight.Bold))
+                        if (latestWin.description.isNotBlank()) {
+                            Spacer(GlanceModifier.height(2.dp))
+                            Text(latestWin.description, style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(10f)))
+                        }
+                        Text(latestWin.date, style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(9f)))
+                    } else {
+                        Text("No wins logged yet", style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(11f)))
+                    }
+
+                    Spacer(GlanceModifier.height(10.dp))
+
+                    // Latest Lesson
+                    Text("LESSON", style = TextStyle(color = ColorProvider(BLUE), fontSize = sp(8f), fontWeight = FontWeight.Bold))
+                    Spacer(GlanceModifier.height(3.dp))
+                    if (latestLesson != null) {
+                        Text(latestLesson.title, style = TextStyle(color = ColorProvider(TEXT), fontSize = sp(13f), fontWeight = FontWeight.Bold))
+                        if (latestLesson.description.isNotBlank()) {
+                            Spacer(GlanceModifier.height(2.dp))
+                            Text(latestLesson.description, style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(10f)))
+                        }
+                        Text(latestLesson.date, style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(9f)))
+                    } else {
+                        Text("No lessons logged yet", style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(11f)))
+                    }
+
+                    Spacer(GlanceModifier.defaultWeight())
+
+                    Text(
+                        "+ Log in app →",
+                        style = TextStyle(color = ColorProvider(GOLD), fontSize = sp(10f), fontWeight = FontWeight.Bold),
+                    )
+                }
+            }
+        }
+    }
+}
+
+class KaizenWinsWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = KaizenWinsWidget()
+}
+
+// ── 4. Goals Countdown Widget ─────────────────────────────────────────────
+
+class KaizenGoalsWidget : GlanceAppWidget() {
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val dao   = KaizenDatabase.getInstance(context).dao()
+        val today = java.time.LocalDate.now()
+
+        val goals = dao.goals().first()
+            .filter { it.status == com.kaizen.app.data.GoalStatus.ACTIVE && it.targetDate.isNotBlank() }
+            .mapNotNull { g ->
+                runCatching {
+                    val days = java.time.temporal.ChronoUnit.DAYS.between(today, java.time.LocalDate.parse(g.targetDate)).toInt()
+                    if (days >= 0) g to days else null
+                }.getOrNull()
+            }
+            .sortedBy { it.second }
+            .take(4)
+
+        provideContent {
+            Box(
+                modifier         = GlanceModifier
+                    .fillMaxSize()
+                    .background(BG)
+                    .cornerRadius(20)
+                    .clickable(actionStartActivity<MainActivity>()),
+                contentAlignment = Alignment.TopStart,
+            ) {
+                Column(
+                    modifier = GlanceModifier.fillMaxSize().padding(16.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("🎯", style = TextStyle(fontSize = sp(15f)))
+                        Spacer(GlanceModifier.width(6.dp))
+                        Text("Goal Countdown", style = TextStyle(color = ColorProvider(GOLD), fontSize = sp(15f), fontWeight = FontWeight.Bold))
+                    }
+
+                    Spacer(GlanceModifier.height(10.dp))
+
+                    if (goals.isEmpty()) {
+                        Text("No active goals with deadlines.", style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(11f)))
+                    } else {
+                        goals.forEach { (goal, days) ->
+                            val urgentColor = when {
+                                days <= 7  -> RED
+                                days <= 30 -> ORANGE
+                                else       -> GOLD
+                            }
+                            Row(
+                                modifier          = GlanceModifier.fillMaxWidth().padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(
+                                    modifier         = GlanceModifier
+                                        .width(44.dp)
+                                        .background(urgentColor.copy(alpha = 0.18f))
+                                        .cornerRadius(8),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = GlanceModifier.padding(4.dp)) {
+                                        Text("$days", style = TextStyle(color = ColorProvider(urgentColor), fontSize = sp(16f), fontWeight = FontWeight.Bold))
+                                        Text(if (days == 1) "day" else "days", style = TextStyle(color = ColorProvider(urgentColor.copy(alpha = 0.7f)), fontSize = sp(7f)))
+                                    }
+                                }
+                                Spacer(GlanceModifier.width(10.dp))
+                                Text(goal.title, style = TextStyle(color = ColorProvider(TEXT), fontSize = sp(12f), fontWeight = FontWeight.Medium), modifier = GlanceModifier.defaultWeight())
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+class KaizenGoalsWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = KaizenGoalsWidget()
+}
+
+// ── Shared scheduling helper ──────────────────────────────────────────────────
+
+private fun scheduledWorkoutForWidget(date: LocalDate, tier: KaizenTier, currentWeek: Int): WorkoutType? {
+    val epoch     = LocalDate.of(2024, 1, 1)
+    val dayOffset = ChronoUnit.DAYS.between(epoch, date).toInt()
+    val dow       = date.dayOfWeek
+    return when (tier) {
+        KaizenTier.FOUNDATION -> when (dow) {
+            java.time.DayOfWeek.MONDAY, java.time.DayOfWeek.WEDNESDAY, java.time.DayOfWeek.FRIDAY -> WorkoutType.FULL_BODY
+            else -> null
+        }
+        KaizenTier.DEVELOPMENT -> when (dow) {
+            java.time.DayOfWeek.MONDAY, java.time.DayOfWeek.THURSDAY -> WorkoutType.PUSH
+            java.time.DayOfWeek.TUESDAY, java.time.DayOfWeek.FRIDAY  -> WorkoutType.LEGS
+            else -> null
+        }
+        KaizenTier.STRENGTH -> {
+            val ppl = listOf(WorkoutType.PUSH, WorkoutType.PULL, WorkoutType.LEGS, null, null)
+            ppl[((dayOffset % 5) + 5) % 5]
+        }
+        KaizenTier.MASTERY -> {
+            val cycle = listOf(WorkoutType.PUSH, WorkoutType.PULL, WorkoutType.LEGS, WorkoutType.FULL_BODY, null, null)
+            cycle[((dayOffset % 6) + 6) % 6]
+        }
+    }
 }

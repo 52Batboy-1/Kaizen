@@ -28,6 +28,8 @@ import com.kaizen.app.data.*
 import com.kaizen.app.ui.*
 import com.kaizen.app.ui.theme.*
 import com.kaizen.app.ui.screens.MuscleMapCard
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 @Composable
 fun TodayScreen(
@@ -52,6 +54,19 @@ fun TodayScreen(
 ) {
     val today = state.today
 
+    val urgentGoals = remember(state.goals) {
+        state.goals
+            .filter { it.status == com.kaizen.app.data.GoalStatus.ACTIVE && it.targetDate.isNotBlank() }
+            .mapNotNull { g ->
+                runCatching {
+                    val days = ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(g.targetDate)).toInt()
+                    if (days >= 0) g to days else null
+                }.getOrNull()
+            }
+            .sortedBy { it.second }
+            .take(3)
+    }
+
     LazyColumn(
         modifier            = modifier.fillMaxSize().padding(horizontal = 22.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -70,7 +85,12 @@ fun TodayScreen(
         }
 
 
-        // ── 1b. Garmin card
+        // ── 1b. Goal countdowns
+        if (urgentGoals.isNotEmpty()) {
+            item { GoalCountdownCard(urgentGoals) }
+        }
+
+        // ── 1c. Garmin card
         item {
             GarminCard(
                 entry       = state.garminEntry,
@@ -418,6 +438,52 @@ fun HabitCard(hwc: HabitWithCompletions, today: String, onToggle: () -> Unit, on
 }
 
 // ── Progress ring ─────────────────────────────────────────────────────────
+
+@Composable
+private fun GoalCountdownCard(goals: List<Pair<com.kaizen.app.data.Goal, Int>>) {
+    Surface(shape = RoundedCornerShape(16.dp), color = K.Card, border = BorderStroke(1.dp, K.Border)) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 13.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("🎯 GOAL COUNTDOWNS",
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, letterSpacing = 2.sp),
+                color = K.GoldDim)
+            goals.forEach { (goal, days) ->
+                val urgentColor = when {
+                    days <= 7  -> Color(0xFFF87171)
+                    days <= 30 -> Color(0xFFFB923C)
+                    else       -> K.Gold
+                }
+                Row(
+                    modifier          = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Surface(shape = RoundedCornerShape(10.dp), color = urgentColor.copy(0.15f),
+                        border = BorderStroke(1.dp, urgentColor.copy(0.4f))) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text("$days", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = urgentColor)
+                            Text(if (days == 1) "day" else "days", fontSize = 8.sp, color = urgentColor.copy(0.7f))
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(goal.title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = K.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            when {
+                                days == 0  -> "Due today!"
+                                days <= 7  -> "This week — push hard"
+                                days <= 30 -> "This month — stay on track"
+                                else       -> "Target: ${goal.targetDate}"
+                            },
+                            fontSize = 10.sp, color = urgentColor.copy(0.8f),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun ProgressRing(progress: Float, color: Color, size: Int = 68, strokeDp: Float = 6f) {
