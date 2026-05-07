@@ -381,9 +381,11 @@ class KaizenViewModel(
             val today = LocalDate.now().toString()
             val cur   = repo.garminEntryOnce(today) ?: GarminEntry(date = today)
             repo.saveGarminEntry(cur.copy(
-                steps     = data.steps     ?: cur.steps,
-                restingHr = data.restingHr ?: cur.restingHr,
-                hrv       = data.hrv       ?: cur.hrv,
+                steps       = data.steps       ?: cur.steps,
+                restingHr   = data.restingHr   ?: cur.restingHr,
+                hrv         = data.hrv         ?: cur.hrv,
+                bodyBattery = data.bodyBattery ?: cur.bodyBattery,
+                stressScore = data.stressScore ?: cur.stressScore,
             ))
             _state.update { it.copy(isLoadingGarmin = false) }
         }
@@ -394,6 +396,7 @@ class KaizenViewModel(
             val today = LocalDate.now().toString()
             val cur   = _state.value.garminEntry ?: GarminEntry(date = today)
             repo.saveGarminEntry(cur.copy(bodyBattery = value))
+            if (value != null) owClient.postBodyBattery(value)
         }
     }
 
@@ -402,6 +405,7 @@ class KaizenViewModel(
             val today = LocalDate.now().toString()
             val cur   = _state.value.garminEntry ?: GarminEntry(date = today)
             repo.saveGarminEntry(cur.copy(stressScore = value))
+            if (value != null) owClient.postStressScore(value)
         }
     }
 

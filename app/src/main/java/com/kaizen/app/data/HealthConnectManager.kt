@@ -13,9 +13,11 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 
 data class GarminHealthData(
-    val steps: Int?     = null,
-    val restingHr: Int? = null,
-    val hrv: Float?     = null,
+    val steps: Int?       = null,
+    val restingHr: Int?   = null,
+    val hrv: Float?       = null,
+    val bodyBattery: Int? = null,
+    val stressScore: Int? = null,
 )
 
 class HealthConnectManager(private val ctx: Context) {

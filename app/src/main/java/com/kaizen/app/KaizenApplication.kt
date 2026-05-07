@@ -30,7 +30,7 @@ class KaizenApplication : Application() {
         CoroutineScope(Dispatchers.IO).launch {
             runCatching {
                 ow.signIn(
-                    userId       = "kaizen-jordan",
+                    userId       = BuildConfig.OW_USER_ID,
                     accessToken  = null,
                     refreshToken = null,
                     apiKey       = BuildConfig.OW_API_KEY,
