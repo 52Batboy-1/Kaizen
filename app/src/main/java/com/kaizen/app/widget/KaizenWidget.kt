@@ -8,7 +8,6 @@ import androidx.glance.appwidget.*
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
-import androidx.glance.color.ColorProvider
 import androidx.glance.layout.*
 import androidx.glance.text.*
 import androidx.glance.unit.ColorProvider
@@ -62,7 +61,7 @@ class KaizenTodayWidget : GlanceAppWidget() {
                 modifier         = GlanceModifier
                     .fillMaxSize()
                     .background(BG)
-                    .cornerRadius(20)
+                    .cornerRadius(20.dp)
                     .clickable(actionStartActivity<MainActivity>()),
                 contentAlignment = Alignment.TopStart,
             ) {
@@ -100,7 +99,7 @@ class KaizenTodayWidget : GlanceAppWidget() {
                             modifier = GlanceModifier
                                 .background(if (todayLog != null) Color(0x2600DBA8) else GOLD)
                                 .padding(horizontal = 12.dp, vertical = 5.dp)
-                                .cornerRadius(10),
+                                .cornerRadius(10.dp),
                         )
                     } else {
                         Text("Rest day 😴", style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(14f)))
@@ -152,7 +151,7 @@ class KaizenStreaksWidget : GlanceAppWidget() {
                 modifier         = GlanceModifier
                     .fillMaxSize()
                     .background(BG)
-                    .cornerRadius(20)
+                    .cornerRadius(20.dp)
                     .clickable(actionStartActivity<MainActivity>()),
                 contentAlignment = Alignment.TopStart,
             ) {
@@ -229,7 +228,7 @@ class KaizenWinsWidget : GlanceAppWidget() {
                 modifier         = GlanceModifier
                     .fillMaxSize()
                     .background(BG)
-                    .cornerRadius(20)
+                    .cornerRadius(20.dp)
                     .clickable(actionStartActivity<MainActivity>()),
                 contentAlignment = Alignment.TopStart,
             ) {
@@ -314,7 +313,7 @@ class KaizenGoalsWidget : GlanceAppWidget() {
                 modifier         = GlanceModifier
                     .fillMaxSize()
                     .background(BG)
-                    .cornerRadius(20)
+                    .cornerRadius(20.dp)
                     .clickable(actionStartActivity<MainActivity>()),
                 contentAlignment = Alignment.TopStart,
             ) {
@@ -347,7 +346,7 @@ class KaizenGoalsWidget : GlanceAppWidget() {
                                     modifier         = GlanceModifier
                                         .width(44.dp)
                                         .background(urgentColor.copy(alpha = 0.18f))
-                                        .cornerRadius(8),
+                                        .cornerRadius(8.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = GlanceModifier.padding(4.dp)) {
