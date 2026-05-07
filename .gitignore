@@ -13,3 +13,13 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Watchface build artifacts
+watchface/bin/
+watchface/gen/
+watchface/internal-mir/
+watchface/external-mir/
+watchface/developer_key
+watchface/*.prg.debug.xml
+watchface/*-settings.json
+docs/Clude\ .rtf

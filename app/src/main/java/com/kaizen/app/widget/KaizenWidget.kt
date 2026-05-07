@@ -1,6 +1,7 @@
 package com.kaizen.app.widget
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.ui.unit.dp
 import androidx.glance.*
 import androidx.glance.action.*
@@ -17,6 +18,12 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.flow.first
+
+private fun tabIntent(context: Context, tab: String) =
+    Intent(context, MainActivity::class.java).apply {
+        putExtra(MainActivity.EXTRA_TAB, tab)
+        addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+    }
 
 // ── Shared colours ────────────────────────────────────────────────────────────
 
@@ -63,10 +70,11 @@ class KaizenTodayWidget : GlanceAppWidget() {
         }
         val scheduled = scheduledWorkoutForWidget(today, tier, currentWeek)
         val doneToday = habits.count { hwc -> hwc.completions.any { it.date == date } }
+        val tap = actionStartActivity(tabIntent(context, "TODAY"))
 
         provideContent {
             if (errorMsg != null) {
-                Box(modifier = GlanceModifier.fillMaxSize().background(BG).cornerRadius(20.dp).clickable(actionStartActivity<MainActivity>())) {
+                Box(modifier = GlanceModifier.fillMaxSize().background(BG).cornerRadius(20.dp).clickable(tap)) {
                     Text(errorMsg!!, style = TextStyle(color = ColorProvider(RED), fontSize = sp(10f)), modifier = GlanceModifier.padding(12.dp))
                 }
                 return@provideContent
@@ -76,7 +84,7 @@ class KaizenTodayWidget : GlanceAppWidget() {
                     .fillMaxSize()
                     .background(BG)
                     .cornerRadius(20.dp)
-                    .clickable(actionStartActivity<MainActivity>()),
+                    .clickable(tap),
                 contentAlignment = Alignment.TopStart,
             ) {
                 Column(
@@ -164,10 +172,11 @@ class KaizenStreaksWidget : GlanceAppWidget() {
         }
 
         val date = LocalDate.now().toString()
+        val tap = actionStartActivity(tabIntent(context, "HABITS"))
 
         provideContent {
             if (errorMsg != null) {
-                Box(modifier = GlanceModifier.fillMaxSize().background(BG).cornerRadius(20.dp).clickable(actionStartActivity<MainActivity>())) {
+                Box(modifier = GlanceModifier.fillMaxSize().background(BG).cornerRadius(20.dp).clickable(tap)) {
                     Text(errorMsg!!, style = TextStyle(color = ColorProvider(RED), fontSize = sp(10f)), modifier = GlanceModifier.padding(12.dp))
                 }
                 return@provideContent
@@ -177,7 +186,7 @@ class KaizenStreaksWidget : GlanceAppWidget() {
                     .fillMaxSize()
                     .background(BG)
                     .cornerRadius(20.dp)
-                    .clickable(actionStartActivity<MainActivity>()),
+                    .clickable(tap),
                 contentAlignment = Alignment.TopStart,
             ) {
                 Column(
@@ -251,10 +260,11 @@ class KaizenWinsWidget : GlanceAppWidget() {
         } catch (e: Exception) {
             errorMsg = e.javaClass.simpleName + ": " + (e.message?.take(80) ?: "?")
         }
+        val tap = actionStartActivity(tabIntent(context, "COACH"))
 
         provideContent {
             if (errorMsg != null) {
-                Box(modifier = GlanceModifier.fillMaxSize().background(BG).cornerRadius(20.dp).clickable(actionStartActivity<MainActivity>())) {
+                Box(modifier = GlanceModifier.fillMaxSize().background(BG).cornerRadius(20.dp).clickable(tap)) {
                     Text(errorMsg!!, style = TextStyle(color = ColorProvider(RED), fontSize = sp(10f)), modifier = GlanceModifier.padding(12.dp))
                 }
                 return@provideContent
@@ -264,7 +274,7 @@ class KaizenWinsWidget : GlanceAppWidget() {
                     .fillMaxSize()
                     .background(BG)
                     .cornerRadius(20.dp)
-                    .clickable(actionStartActivity<MainActivity>()),
+                    .clickable(tap),
                 contentAlignment = Alignment.TopStart,
             ) {
                 Column(
@@ -346,10 +356,11 @@ class KaizenGoalsWidget : GlanceAppWidget() {
         } catch (e: Exception) {
             errorMsg = e.javaClass.simpleName + ": " + (e.message?.take(80) ?: "?")
         }
+        val tap = actionStartActivity(tabIntent(context, "COACH"))
 
         provideContent {
             if (errorMsg != null) {
-                Box(modifier = GlanceModifier.fillMaxSize().background(BG).cornerRadius(20.dp).clickable(actionStartActivity<MainActivity>())) {
+                Box(modifier = GlanceModifier.fillMaxSize().background(BG).cornerRadius(20.dp).clickable(tap)) {
                     Text(errorMsg!!, style = TextStyle(color = ColorProvider(RED), fontSize = sp(10f)), modifier = GlanceModifier.padding(12.dp))
                 }
                 return@provideContent
@@ -359,7 +370,7 @@ class KaizenGoalsWidget : GlanceAppWidget() {
                     .fillMaxSize()
                     .background(BG)
                     .cornerRadius(20.dp)
-                    .clickable(actionStartActivity<MainActivity>()),
+                    .clickable(tap),
                 contentAlignment = Alignment.TopStart,
             ) {
                 Column(

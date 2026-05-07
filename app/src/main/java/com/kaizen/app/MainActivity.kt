@@ -31,6 +31,7 @@ import com.kaizen.app.ui.theme.*
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import android.content.Intent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.glance.appwidget.GlanceAppWidgetManager
@@ -38,14 +39,26 @@ import androidx.lifecycle.lifecycleScope
 import com.kaizen.app.widget.*
 
 class MainActivity : ComponentActivity() {
+
+    companion object {
+        const val EXTRA_TAB = "kaizen.destination_tab"
+    }
+
+    private val _requestedTab = mutableStateOf(Tab.TODAY)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        _requestedTab.value = tabFromIntent(intent)
         val db           = KaizenDatabase.getInstance(this)
         val repo         = KaizenRepository(db.dao())
         val prefs        = UserPrefs(this)
         val healthConnect = HealthConnectManager(this)
-        setContent { KaizenTheme { KaizenApp(repo = repo, prefs = prefs, healthConnect = healthConnect) } }
+        setContent {
+            KaizenTheme {
+                KaizenApp(repo = repo, prefs = prefs, healthConnect = healthConnect, initialTab = _requestedTab.value)
+            }
+        }
 
         lifecycleScope.launch {
             runCatching {
@@ -56,14 +69,22 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        _requestedTab.value = tabFromIntent(intent)
+    }
+
+    private fun tabFromIntent(i: Intent?) =
+        i?.getStringExtra(EXTRA_TAB)?.let { runCatching { Tab.valueOf(it) }.getOrNull() } ?: Tab.TODAY
 }
 
-private enum class Tab(val label: String, val icon: String) {
+internal enum class Tab(val label: String, val icon: String) {
     TODAY("Today", "⬡"), WORKOUTS("Workouts", "◈"), HABITS("Habits", "≡"), STATS("Stats", "◉"), PROGRESS("Progress", "🏆"), COACH("Coach", "✦"),
 }
 
 @Composable
-fun KaizenApp(repo: KaizenRepository, prefs: UserPrefs, healthConnect: HealthConnectManager) {
+internal fun KaizenApp(repo: KaizenRepository, prefs: UserPrefs, healthConnect: HealthConnectManager, initialTab: Tab = Tab.TODAY) {
     val vm: KaizenViewModel = viewModel(factory = KaizenViewModelFactory(repo, prefs, healthConnect))
 
     val garminPermLauncher = rememberLauncherForActivityResult(
@@ -75,7 +96,9 @@ fun KaizenApp(repo: KaizenRepository, prefs: UserPrefs, healthConnect: HealthCon
     val goalForm    by vm.goalForm.collectAsStateWithLifecycle()
     val winForm     by vm.winForm.collectAsStateWithLifecycle()
     val chatInput   by vm.chatInput.collectAsStateWithLifecycle()
-    var activeTab by remember { mutableStateOf(Tab.TODAY) }
+    var activeTab by remember { mutableStateOf(initialTab) }
+
+    LaunchedEffect(initialTab) { activeTab = initialTab }
     val dateLabel = remember { LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMM d")) }
 
     LaunchedEffect(Unit) {
