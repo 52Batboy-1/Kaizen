@@ -17,8 +17,9 @@ import java.time.LocalDate
         Goal::class,
         Win::class,
         GarminEntry::class,
+        SlipEntry::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 @TypeConverters(KaizenConverters::class)
@@ -149,6 +150,18 @@ class KaizenRepository(private val dao: KaizenDao) {
         runCatching { SupabaseSync.deleteWin(win.remoteId) }
     }
 
+    val slipEntries: Flow<List<SlipEntry>> = dao.slipEntries()
+
+    suspend fun addSlip(body: String, tag: String = "") {
+        val slip = SlipEntry(body = body, tag = tag)
+        dao.insertSlip(slip)
+        runCatching { SupabaseSync.upsertSlip(slip) }
+    }
+    suspend fun deleteSlip(slip: SlipEntry) {
+        dao.deleteSlip(slip)
+        runCatching { SupabaseSync.deleteSlip(slip.remoteId) }
+    }
+
     val garminEntryToday: Flow<GarminEntry?> = dao.garminForDate(LocalDate.now().toString())
 
     suspend fun saveGarminEntry(entry: GarminEntry) = dao.upsertGarminEntry(entry)
@@ -160,12 +173,13 @@ class KaizenRepository(private val dao: KaizenDao) {
     //     if (entry != null) dao.upsertGarminEntry(entry)
     // }
 
-    suspend fun syncToCloud(habits: List<HabitWithCompletions>, journals: List<JournalEntry>, goals: List<Goal>, wins: List<Win>): Boolean =
+    suspend fun syncToCloud(habits: List<HabitWithCompletions>, journals: List<JournalEntry>, goals: List<Goal>, wins: List<Win>, slips: List<SlipEntry>): Boolean =
         runCatching {
-            habits.forEach  { SupabaseSync.upsertHabit(it.habit) }
+            habits.forEach   { SupabaseSync.upsertHabit(it.habit) }
             journals.forEach { SupabaseSync.upsertJournal(it) }
-            goals.forEach   { SupabaseSync.upsertGoal(it)    }
-            wins.forEach    { SupabaseSync.upsertWin(it)     }
+            goals.forEach    { SupabaseSync.upsertGoal(it)    }
+            wins.forEach     { SupabaseSync.upsertWin(it)     }
+            slips.forEach    { SupabaseSync.upsertSlip(it)    }
         }.isSuccess
 
     suspend fun pullFromCloud(): Boolean = runCatching {
@@ -235,6 +249,21 @@ class KaizenRepository(private val dao: KaizenDao) {
                     updatedAt   = updatedAt,
                 )
                 if (local == null) dao.insertWin(win) else dao.updateWin(win)
+            }
+        }
+        SupabaseSync.fetchSlips().forEach { s ->
+            val remoteId  = s.optString("remote_id", "").ifBlank { s.optString("id", "") }
+            if (remoteId.isBlank()) return@forEach
+            val local = dao.slipByRemoteId(remoteId)
+            if (local == null) {
+                dao.insertSlip(SlipEntry(
+                    remoteId  = remoteId,
+                    body      = s.optString("body", s.optString("text", "")),
+                    tag       = s.optString("tag", ""),
+                    source    = s.optString("source", "android"),
+                    createdAt = s.optLong("updated_at", 0L).takeIf { it > 0 } ?: System.currentTimeMillis(),
+                    updatedAt = s.optLong("updated_at", System.currentTimeMillis()),
+                ))
             }
         }
     }.isSuccess

@@ -538,7 +538,7 @@ async function loadAll(cfg) {
     history,
     workouts: workoutsShaped,
     journal: journal.map(j => ({ id: j.remote_id || j.id, when: j.created_at ? new Date(j.created_at).getTime() : Number(j.updated_at || 0), body: j.body || j.text || "", source: j.source || "android" })),
-    weaknesses: weakness.map(w => ({ id: w.remote_id || w.id, when: w.created_at ? new Date(w.created_at).getTime() : Number(w.updated_at || 0), body: w.body || w.text || "", source: w.source || "android" })),
+    weaknesses: weakness.map(w => ({ id: w.remote_id || w.id, supabaseId: w.id, when: w.created_at ? new Date(w.created_at).getTime() : Number(w.updated_at || 0), body: w.body || w.text || "", source: w.source || "android" })),
     focusSessions: focus.map(f => ({ date: f.date, minutes: f.minutes, task: f.task })),
     wins: (wins || []).map(w => ({ id: w.remote_id, title: w.title, description: w.description || "", date: w.date, when: w.updated_at ? Number(w.updated_at) : 0 })),
     goals: (goals || []).map(g => ({ id: g.remote_id, title: g.title, description: g.description || "", targetDate: g.target_date || "", status: g.status || "ACTIVE" })),
@@ -557,11 +557,16 @@ async function postJournal(cfg, body) {
 }
 
 async function postWeakness(cfg, body, tag) {
+  const remote_id = crypto.randomUUID();
   return sbFetch(cfg, "weakness_entries", {
     method: "POST",
     headers: { "Prefer": "return=representation" },
-    body: JSON.stringify({ body, tag: tag || null, source: "web" }),
+    body: JSON.stringify({ remote_id, body, tag: tag || null, source: "web" }),
   });
+}
+
+async function deleteWeakness(cfg, id) {
+  return sbFetch(cfg, `weakness_entries?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => null);
 }
 
 const QUOTES = [
@@ -908,8 +913,12 @@ function KaizenApp({ config, onResetConfig }) {
     if (created) await fetchAll();
   }
   async function addWeakness(body) {
-    const created = await postWeakness(config, body);
-    if (created) await fetchAll();
+    await postWeakness(config, body).catch(() => null);
+    await fetchAll();
+  }
+  async function removeWeakness(id) {
+    await deleteWeakness(config, id);
+    await fetchAll();
   }
 
   return (
@@ -923,7 +932,7 @@ function KaizenApp({ config, onResetConfig }) {
           {screen === "workouts" && <WorkoutsScreen data={data} />}
           {screen === "focus"    && <FocusScreen data={data} config={config} onRefresh={fetchAll} />}
           {screen === "wins"     && <WinsScreen data={data} />}
-          {screen === "ledger"   && <LedgerScreen data={data} addWeakness={addWeakness} />}
+          {screen === "ledger"   && <LedgerScreen data={data} addWeakness={addWeakness} removeWeakness={removeWeakness} />}
           {screen === "journal"  && <JournalScreen data={data} addJournal={addJournal} />}
         </main>
         <KaizenTweaks tweaks={tweaks} setTweak={(k, v) => {
@@ -1395,9 +1404,10 @@ function WinsScreen({ data }) {
   );
 }
 
-function LedgerScreen({ data, addWeakness }) {
+function LedgerScreen({ data, addWeakness, removeWeakness }) {
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(null);
   return (
     <>
       <div className="page-head">
@@ -1423,9 +1433,15 @@ function LedgerScreen({ data, addWeakness }) {
             <div className="card-head"><h2>Recent slips</h2><span className="aside">{data.weaknesses.length} total</span></div>
             {data.weaknesses.length === 0 ? <div className="empty-state">No slips logged.</div>
               : data.weaknesses.map(w => (
-                <div key={w.id} className="entry weakness">
-                  <div className="when">{new Date(w.when).toLocaleString()} · {(w.source || "android").toUpperCase()}</div>
+                <div key={w.id} className="entry weakness" style={{ position: "relative" }}>
+                  <div className="when">{w.when ? new Date(w.when).toLocaleString() : "—"} · {(w.source || "android").toUpperCase()}</div>
                   <div className="body">{w.body}</div>
+                  <button
+                    onClick={async () => { setDeleting(w.id); await removeWeakness(w.supabaseId); setDeleting(null); }}
+                    disabled={deleting === w.id}
+                    style={{ position: "absolute", top: 8, right: 0, background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 13, padding: "2px 6px", opacity: 0.6 }}
+                    title="Delete"
+                  >{deleting === w.id ? "…" : "✕"}</button>
                 </div>
               ))}
           </section>

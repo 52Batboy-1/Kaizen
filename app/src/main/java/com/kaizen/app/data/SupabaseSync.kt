@@ -61,15 +61,28 @@ object SupabaseSync {
         }
     )
 
+    suspend fun upsertSlip(slip: SlipEntry) = upsert(
+        table = "weakness_entries",
+        body  = JSONObject().apply {
+            put("remote_id",  slip.remoteId)
+            put("body",       slip.body)
+            put("tag",        slip.tag)
+            put("source",     slip.source)
+            put("updated_at", slip.updatedAt)
+        }
+    )
+
     suspend fun deleteHabit(remoteId: String)  = delete("habits", remoteId)
     suspend fun deleteJournal(remoteId: String) = delete("journal_entries", remoteId)
     suspend fun deleteGoal(remoteId: String)    = delete("goals", remoteId)
     suspend fun deleteWin(remoteId: String)     = delete("wins", remoteId)
+    suspend fun deleteSlip(remoteId: String)    = delete("weakness_entries", remoteId)
 
     suspend fun fetchHabits()          = fetch("habits")
     suspend fun fetchJournalEntries()  = fetch("journal_entries")
     suspend fun fetchGoals()           = fetch("goals")
     suspend fun fetchWins()            = fetch("wins")
+    suspend fun fetchSlips()           = fetch("weakness_entries")
 
     // PATCH existing row; if zero rows matched (Content-Range: */0), INSERT new row.
     // Mirrors the web companion's approach — avoids relying on on_conflict constraint discovery.

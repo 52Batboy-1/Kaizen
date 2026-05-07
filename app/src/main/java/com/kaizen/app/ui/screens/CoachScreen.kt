@@ -28,7 +28,7 @@ import com.kaizen.app.ui.theme.*
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-private enum class CoachTab { CHAT, JOURNAL, GOALS, WINS }
+private enum class CoachTab { CHAT, JOURNAL, GOALS, WINS, LEDGER }
 
 private val moodEmoji = listOf("😔", "😐", "🙂", "😄", "🔥")
 private val moodColor = listOf(
@@ -69,6 +69,10 @@ fun CoachScreen(
     onOpenAddWin: () -> Unit,
     onDismissWin: () -> Unit,
     onDeleteWin: (Win) -> Unit,
+    slipForm: SlipForm,
+    onSlipBody: (String) -> Unit,
+    onSubmitSlip: () -> Unit,
+    onDeleteSlip: (SlipEntry) -> Unit,
     onChatInput: (String) -> Unit,
     onSendChat: () -> Unit,
     onClearChat: () -> Unit,
@@ -112,6 +116,7 @@ fun CoachScreen(
                     CoachTab.JOURNAL -> "📓"
                     CoachTab.GOALS   -> "🎯"
                     CoachTab.WINS    -> "🏆"
+                    CoachTab.LEDGER  -> "📒"
                 }
                 Surface(
                     modifier = Modifier.weight(1f).clickable { activeTab = tab },
@@ -179,6 +184,7 @@ fun CoachScreen(
                 CoachTab.JOURNAL -> JournalTab(state, onOpenAddJournal, onOpenEditJournal, onDeleteJournal)
                 CoachTab.GOALS   -> GoalsTab(state, onOpenAddGoal, onOpenEditGoal, onCompleteGoal, onDeleteGoal)
                 CoachTab.WINS    -> WinsTab(state, onOpenAddWin, onDeleteWin)
+                CoachTab.LEDGER  -> LedgerTab(state, slipForm, onSlipBody, onSubmitSlip, onDeleteSlip)
             }
         }
     }
@@ -806,6 +812,118 @@ private fun WinCard(win: Win, onDelete: () -> Unit) {
                     Text(win.description, fontSize = 12.sp, color = K.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 Text(date, fontSize = 10.sp, color = K.Muted)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LedgerTab(
+    state: KaizenUiState,
+    form: SlipForm,
+    onBody: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onDelete: (SlipEntry) -> Unit,
+) {
+    LazyColumn(
+        contentPadding      = PaddingValues(start = 22.dp, top = 0.dp, end = 22.dp, bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
+            Text(
+                "${state.slipEntries.size} entr${if (state.slipEntries.size != 1) "ies" else "y"} · noticing is the practice",
+                color = K.Muted, fontSize = 13.sp,
+            )
+        }
+
+        item {
+            Surface(
+                shape  = RoundedCornerShape(16.dp),
+                color  = K.Card,
+                border = BorderStroke(1.dp, K.Border),
+            ) {
+                Column(
+                    modifier            = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text("LOG A SLIP", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, letterSpacing = 2.5.sp), color = K.GoldDim)
+                    Surface(shape = RoundedCornerShape(12.dp), color = K.Card2, border = BorderStroke(1.dp, K.Border)) {
+                        BasicTextField(
+                            value           = form.body,
+                            onValueChange   = onBody,
+                            modifier        = Modifier.fillMaxWidth().padding(14.dp).heightIn(min = 80.dp),
+                            textStyle       = TextStyle(fontSize = 14.sp, color = K.Text, lineHeight = 20.sp),
+                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                            decorationBox   = { inner ->
+                                if (form.body.isEmpty()) Text("What happened? Be specific. No self-flagellation — just honesty.", fontSize = 14.sp, color = K.Muted.copy(0.5f), lineHeight = 20.sp)
+                                else inner()
+                            },
+                        )
+                    }
+                    Button(
+                        onClick  = onSubmit,
+                        shape    = RoundedCornerShape(100.dp),
+                        colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFFF87171), contentColor = Color.White),
+                        enabled  = form.body.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(vertical = 12.dp),
+                    ) {
+                        Text("Record", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Text(
+                        "SHAME IS NOT THE POINT · NOTICING IS",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, letterSpacing = 2.sp),
+                        color = K.Muted,
+                    )
+                }
+            }
+        }
+
+        if (state.slipEntries.isEmpty()) {
+            item {
+                Box(Modifier.fillMaxWidth().padding(vertical = 40.dp), Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("📒", fontSize = 40.sp)
+                        Text("No slips logged", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = K.Text)
+                        Text("You can't fix what you won't look at.", fontSize = 12.sp, color = K.Muted)
+                    }
+                }
+            }
+        } else {
+            item { SectionLabel("RECENT SLIPS") }
+            items(state.slipEntries, key = { it.id }) { slip ->
+                SlipCard(slip, onDelete = { onDelete(slip) })
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun SlipCard(slip: SlipEntry, onDelete: () -> Unit) {
+    val accent = Color(0xFFF87171)
+    val fmt = remember { java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d · h:mm a") }
+    val dateStr = remember(slip.createdAt) {
+        runCatching {
+            java.time.Instant.ofEpochMilli(slip.createdAt)
+                .atZone(java.time.ZoneId.systemDefault())
+                .format(fmt)
+        }.getOrElse { "" }
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = {}, onLongClick = onDelete),
+        shape    = RoundedCornerShape(16.dp),
+        color    = K.Card,
+        border   = BorderStroke(1.dp, accent.copy(0.25f)),
+    ) {
+        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Surface(shape = RoundedCornerShape(10.dp), color = accent.copy(0.12f), modifier = Modifier.size(44.dp)) {
+                Box(contentAlignment = Alignment.Center) { Text("📒", fontSize = 20.sp) }
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(slip.body, fontSize = 13.sp, color = K.Text, lineHeight = 18.sp)
+                Text(dateStr, fontSize = 10.sp, color = K.Muted)
             }
         }
     }

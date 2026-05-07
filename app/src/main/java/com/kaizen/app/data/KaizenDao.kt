@@ -139,6 +139,19 @@ interface KaizenDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertGarminEntry(entry: GarminEntry)
 
+    // ── Ledger (slips) ────────────────────────────────────────────────────
+    @Query("SELECT * FROM slip_entries ORDER BY createdAt DESC LIMIT 200")
+    fun slipEntries(): Flow<List<SlipEntry>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSlip(entry: SlipEntry): Long
+
+    @Delete
+    suspend fun deleteSlip(entry: SlipEntry)
+
+    @Query("SELECT * FROM slip_entries WHERE remoteId = :id LIMIT 1")
+    suspend fun slipByRemoteId(id: String): SlipEntry?
+
     // ── Cloud restore counts ───────────────────────────────────────────────
     @Query("SELECT COUNT(*) FROM journal_entries")
     suspend fun journalCount(): Int

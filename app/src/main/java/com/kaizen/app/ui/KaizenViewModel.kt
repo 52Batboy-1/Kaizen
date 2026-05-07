@@ -17,6 +17,7 @@ data class ChatMessage(val role: String, val content: String)
 data class JournalForm(val text: String = "", val mood: Int = 3, val tags: String = "")
 data class GoalForm(val title: String = "", val description: String = "", val targetDate: String = "")
 data class WinForm(val title: String = "", val description: String = "", val type: WinType = WinType.WIN)
+data class SlipForm(val body: String = "")
 
 data class KaizenUiState(
     val habits: List<HabitWithCompletions>      = emptyList(),
@@ -45,6 +46,7 @@ data class KaizenUiState(
     val journalEntries: List<JournalEntry>       = emptyList(),
     val goals: List<Goal>                        = emptyList(),
     val wins: List<Win>                          = emptyList(),
+    val slipEntries: List<SlipEntry>             = emptyList(),
     val currentTier: KaizenTier                  = KaizenTier.FOUNDATION,
     val showAddJournal: Boolean                  = false,
     val showAddGoal: Boolean                     = false,
@@ -128,6 +130,8 @@ class KaizenViewModel(
     val goalForm: StateFlow<GoalForm> = _goalForm.asStateFlow()
     private val _winForm     = MutableStateFlow(WinForm())
     val winForm: StateFlow<WinForm> = _winForm.asStateFlow()
+    private val _slipForm    = MutableStateFlow(SlipForm())
+    val slipForm: StateFlow<SlipForm> = _slipForm.asStateFlow()
     private val _chatInput   = MutableStateFlow("")
     val chatInput: StateFlow<String> = _chatInput.asStateFlow()
 
@@ -151,6 +155,7 @@ class KaizenViewModel(
         viewModelScope.launch { repo.journalEntries.collect    { v -> _state.update { it.copy(journalEntries = v) } } }
         viewModelScope.launch { repo.goals.collect             { v -> _state.update { it.copy(goals = v) } } }
         viewModelScope.launch { repo.wins.collect              { v -> _state.update { it.copy(wins = v) } } }
+        viewModelScope.launch { repo.slipEntries.collect       { v -> _state.update { it.copy(slipEntries = v) } } }
         viewModelScope.launch { prefs.currentTier.collect      { v -> _state.update { it.copy(currentTier = v) } } }
         viewModelScope.launch { prefs.onboardingDone.collect   { v -> _state.update { it.copy(onboardingDone = v) } } }
         viewModelScope.launch { prefs.userName.collect         { v -> _state.update { it.copy(userName = v) } } }
@@ -343,6 +348,18 @@ class KaizenViewModel(
     }
     fun deleteWin(win: Win) = viewModelScope.launch { repo.deleteWin(win) }
 
+    // ── Ledger (slips) ────────────────────────────────────────────────────
+
+    fun slipBody(v: String) = _slipForm.update { it.copy(body = v) }
+    fun submitSlip() {
+        val f = _slipForm.value; if (f.body.isBlank()) return
+        viewModelScope.launch {
+            repo.addSlip(f.body.trim())
+            _slipForm.value = SlipForm()
+        }
+    }
+    fun deleteSlip(slip: SlipEntry) = viewModelScope.launch { repo.deleteSlip(slip) }
+
     // ── Garmin / Health Connect ───────────────────────────────────────────
 
     val garminPermissions get() = hcm.permissions
@@ -394,7 +411,7 @@ class KaizenViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isSyncing = true, syncResult = null) }
             val s      = _state.value
-            val pushOk = repo.syncToCloud(s.habits, s.journalEntries, s.goals, s.wins)
+            val pushOk = repo.syncToCloud(s.habits, s.journalEntries, s.goals, s.wins, s.slipEntries)
             val pullOk = repo.pullFromCloud()
             _state.update { it.copy(isSyncing = false, syncResult = pushOk && pullOk) }
             delay(2500)

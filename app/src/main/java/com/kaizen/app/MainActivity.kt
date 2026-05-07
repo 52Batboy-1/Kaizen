@@ -95,6 +95,7 @@ internal fun KaizenApp(repo: KaizenRepository, prefs: UserPrefs, healthConnect: 
     val journalForm by vm.journalForm.collectAsStateWithLifecycle()
     val goalForm    by vm.goalForm.collectAsStateWithLifecycle()
     val winForm     by vm.winForm.collectAsStateWithLifecycle()
+    val slipForm    by vm.slipForm.collectAsStateWithLifecycle()
     val chatInput   by vm.chatInput.collectAsStateWithLifecycle()
     var activeTab by remember { mutableStateOf(initialTab) }
 
@@ -188,6 +189,10 @@ internal fun KaizenApp(repo: KaizenRepository, prefs: UserPrefs, healthConnect: 
                     onOpenAddWin      = { vm.openAddWin() },
                     onDismissWin      = { vm.dismissWin() },
                     onDeleteWin       = { vm.deleteWin(it) },
+                    slipForm          = slipForm,
+                    onSlipBody        = { vm.slipBody(it) },
+                    onSubmitSlip      = { vm.submitSlip() },
+                    onDeleteSlip      = { vm.deleteSlip(it) },
                     onSyncToCloud     = { vm.syncToCloud() },
                 )
             }

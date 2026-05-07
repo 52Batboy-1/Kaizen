@@ -210,6 +210,19 @@ data class Win(
 )
 
 
+// ══ LEDGER (Slips) ═══════════════════════════════════════════════════════════
+
+@Entity(tableName = "slip_entries")
+data class SlipEntry(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val remoteId: String = java.util.UUID.randomUUID().toString(),
+    val body: String,
+    val tag: String = "",
+    val source: String = "android",
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+)
+
 // ══ INJURY LOG ════════════════════════════════════════════════════════════
 
 enum class InjurySide(val label: String) { LEFT("Left"), RIGHT("Right"), BOTH("Both") }
