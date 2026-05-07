@@ -32,6 +32,10 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.lifecycle.lifecycleScope
+import com.kaizen.app.widget.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,6 +46,15 @@ class MainActivity : ComponentActivity() {
         val prefs        = UserPrefs(this)
         val healthConnect = HealthConnectManager(this)
         setContent { KaizenTheme { KaizenApp(repo = repo, prefs = prefs, healthConnect = healthConnect) } }
+
+        lifecycleScope.launch {
+            runCatching {
+                val manager = GlanceAppWidgetManager(this@MainActivity)
+                listOf(KaizenTodayWidget(), KaizenStreaksWidget(), KaizenWinsWidget(), KaizenGoalsWidget()).forEach { w ->
+                    manager.getGlanceIds(w::class.java).forEach { gid -> w.update(this@MainActivity, gid) }
+                }
+            }
+        }
     }
 }
 

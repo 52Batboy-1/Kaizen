@@ -488,7 +488,6 @@ async function sbFetch(cfg, path, opts = {}) {
   const headers = {
     "apikey": cfg.anonKey,
     "Authorization": `Bearer ${cfg.anonKey}`,
-    "x-user-id": cfg.userId,
     "Content-Type": "application/json",
     ...(opts.headers || {}),
   };
@@ -499,24 +498,22 @@ async function sbFetch(cfg, path, opts = {}) {
 }
 
 async function loadAll(cfg) {
-  const uid = cfg.userId;
-  const q = `user_id=eq.${uid}`;
   const [habits, habitLogs, workouts, exercises, sets, focus, journal, weakness, identity, wins, goals] = await Promise.all([
-    sbFetch(cfg, `habits?${q}&archived=eq.false&order=position.asc`),
-    sbFetch(cfg, `habit_logs?${q}&order=date.desc&limit=2000`),
-    sbFetch(cfg, `workouts?${q}&order=date.desc&limit=200`),
-    sbFetch(cfg, `workout_exercises?${q}&order=position.asc`),
-    sbFetch(cfg, `workout_sets?${q}&order=position.asc`),
-    sbFetch(cfg, `focus_sessions?${q}&order=date.desc&limit=200`),
-    sbFetch(cfg, `journal_entries?${q}&order=created_at.desc&limit=200`),
-    sbFetch(cfg, `weakness_entries?${q}&order=created_at.desc&limit=200`),
-    sbFetch(cfg, `identity_state?${q}&limit=1`),
+    sbFetch(cfg, `habits?order=position.asc`).catch(() => sbFetch(cfg, `habits?order=updated_at.desc&limit=200`).catch(() => [])),
+    sbFetch(cfg, `habit_logs?order=date.desc&limit=2000`).catch(() => []),
+    sbFetch(cfg, `workouts?order=date.desc&limit=200`).catch(() => []),
+    sbFetch(cfg, `workout_exercises?order=position.asc`).catch(() => []),
+    sbFetch(cfg, `workout_sets?order=position.asc`).catch(() => []),
+    sbFetch(cfg, `focus_sessions?order=date.desc&limit=200`).catch(() => []),
+    sbFetch(cfg, `journal_entries?order=created_at.desc&limit=200`).catch(() => sbFetch(cfg, `journal_entries?order=updated_at.desc&limit=200`).catch(() => [])),
+    sbFetch(cfg, `weakness_entries?order=created_at.desc&limit=200`).catch(() => []),
+    sbFetch(cfg, `identity_state?limit=1`).catch(() => []),
     sbFetch(cfg, `wins?order=date.desc&limit=200`).catch(() => []),
     sbFetch(cfg, `goals?order=updated_at.desc&limit=200`).catch(() => []),
   ]);
 
   const history = {};
-  habits.forEach(h => { history[h.id] = {}; });
+  habits.forEach(h => { history[h.remote_id || h.id] = {}; });
   habitLogs.forEach(l => {
     if (!history[l.habit_id]) history[l.habit_id] = {};
     history[l.habit_id][l.date] = l.done;
@@ -537,11 +534,11 @@ async function loadAll(cfg) {
 
   const id = (identity && identity[0]) || {};
   return {
-    habits: habits.map(h => ({ id: h.id, name: h.name, icon: h.icon_num, category: h.category })),
+    habits: habits.map(h => ({ id: h.remote_id || h.id, name: h.name, icon: h.icon_num || "01", category: h.category })),
     history,
     workouts: workoutsShaped,
-    journal: journal.map(j => ({ id: j.id, when: new Date(j.created_at).getTime(), body: j.body, source: j.source })),
-    weaknesses: weakness.map(w => ({ id: w.id, when: new Date(w.created_at).getTime(), body: w.body, source: w.source })),
+    journal: journal.map(j => ({ id: j.remote_id || j.id, when: j.created_at ? new Date(j.created_at).getTime() : Number(j.updated_at || 0), body: j.body || j.text || "", source: j.source || "android" })),
+    weaknesses: weakness.map(w => ({ id: w.remote_id || w.id, when: w.created_at ? new Date(w.created_at).getTime() : Number(w.updated_at || 0), body: w.body || w.text || "", source: w.source || "android" })),
     focusSessions: focus.map(f => ({ date: f.date, minutes: f.minutes, task: f.task })),
     wins: (wins || []).map(w => ({ id: w.remote_id, title: w.title, description: w.description || "", date: w.date, when: w.updated_at ? Number(w.updated_at) : 0 })),
     goals: (goals || []).map(g => ({ id: g.remote_id, title: g.title, description: g.description || "", targetDate: g.target_date || "", status: g.status || "ACTIVE" })),
@@ -555,7 +552,7 @@ async function postJournal(cfg, body) {
   return sbFetch(cfg, "journal_entries", {
     method: "POST",
     headers: { "Prefer": "return=representation" },
-    body: JSON.stringify({ user_id: cfg.userId, body, source: "web" }),
+    body: JSON.stringify({ body, source: "web" }),
   });
 }
 
@@ -563,7 +560,7 @@ async function postWeakness(cfg, body, tag) {
   return sbFetch(cfg, "weakness_entries", {
     method: "POST",
     headers: { "Prefer": "return=representation" },
-    body: JSON.stringify({ user_id: cfg.userId, body, tag: tag || null, source: "web" }),
+    body: JSON.stringify({ body, tag: tag || null, source: "web" }),
   });
 }
 
@@ -735,7 +732,7 @@ function App() {
   const [config, setConfig] = useState(() => loadConfig());
   if (!config) {
     return <SetupScreen onSave={(cfg) => {
-      upsertProfile({ username: cfg.username, url: cfg.url, anonKey: cfg.anonKey, userId: cfg.userId, theme: cfg.theme });
+      upsertProfile({ username: cfg.username, url: cfg.url, anonKey: cfg.anonKey, theme: cfg.theme });
       saveConfig(cfg);
       setConfig(cfg);
     }} />;
@@ -788,7 +785,7 @@ function SignInList({ profiles, theme, setTheme, onPick, onRemove, onNew }) {
             <button className="ghost" style={{ flex: 1, justifyContent: "flex-start", textAlign: "left", padding: "14px 16px", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}
               onClick={() => onPick(p)}>
               <span style={{ fontFamily: "var(--serif)", fontSize: 18, letterSpacing: "-0.01em" }}>{p.username}</span>
-              <span className="mono tiny muted" style={{ letterSpacing: "0.08em" }}>{(p.url || "").replace(/^https?:\/\//, "").replace(/\.supabase\.co.*$/, "")} · {p.userId.slice(0, 8)}…</span>
+              <span className="mono tiny muted" style={{ letterSpacing: "0.08em" }}>{(p.url || "").replace(/^https?:\/\//, "").replace(/\.supabase\.co.*$/, "")}</span>
             </button>
             <button className="ghost" onClick={(e) => { e.stopPropagation(); if (confirm(`Remove "${p.username}"?`)) onRemove(p.username); }} style={{ padding: "0 14px" }}>×</button>
           </div>
@@ -810,7 +807,6 @@ function CreateProfile({ theme, setTheme, onSave, hasProfiles, onCancel }) {
   const [username, setUsername] = useState("");
   const [url, setUrl] = useState("");
   const [anonKey, setAnonKey] = useState("");
-  const [userId, setUserId] = useState(() => newUserId());
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -826,14 +822,11 @@ function CreateProfile({ theme, setTheme, onSave, hasProfiles, onCancel }) {
   }, []);
 
   async function connect() {
-    if (!username.trim() || !url || !anonKey || !userId) { setError("All fields are required."); return; }
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
-      setError("User ID must be a valid UUID."); return;
-    }
+    if (!username.trim() || !url || !anonKey) { setError("All fields are required."); return; }
     setError(""); setBusy(true);
     try {
-      await sbFetch({ url, anonKey, userId }, `habits?user_id=eq.${userId}&limit=1`);
-      onSave({ username: username.trim(), url, anonKey, userId, theme });
+      await sbFetch({ url, anonKey }, `habits?limit=1`);
+      onSave({ username: username.trim(), url, anonKey, theme });
     } catch (e) { setError("Connection failed: " + e.message); }
     finally { setBusy(false); }
   }
@@ -846,12 +839,6 @@ function CreateProfile({ theme, setTheme, onSave, hasProfiles, onCancel }) {
       <input type="text" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://xxxx.supabase.co" />
       <label>Anon key</label>
       <input type="password" value={anonKey} onChange={e => setAnonKey(e.target.value)} placeholder="eyJhbGciOi…" />
-      <label>User ID (UUID — from Android app Settings)</label>
-      <div className="row" style={{ gap: 8 }}>
-        <input type="text" value={userId} onChange={e => setUserId(e.target.value)} style={{ flex: 1 }} />
-        <button className="ghost" type="button" onClick={() => setUserId(newUserId())} title="Generate new UUID">↻</button>
-      </div>
-      <div className="muted tiny mono" style={{ marginTop: 6, letterSpacing: "0.08em" }}>COPY FROM ANDROID APP → SETTINGS → EXPORT USER ID</div>
       <label style={{ marginTop: 20 }}>Theme</label>
       <div className="row" style={{ gap: 8, marginTop: 4 }}>
         {["paper", "ink", "forge"].map(t => <button key={t} className={theme === t ? "primary" : "ghost"} onClick={() => setTheme(t)}>{t}</button>)}
@@ -1249,7 +1236,7 @@ function FocusScreen({ data, config, onRefresh }) {
       await sbFetch(config, "focus_sessions", {
         method: "POST",
         headers: { "Prefer": "return=minimal" },
-        body: JSON.stringify({ user_id: config.userId, date: tk, minutes: mins, task: task || null, completed: true }),
+        body: JSON.stringify({ date: tk, minutes: mins, task: task || null, completed: true }),
       });
       await onRefresh();
     } catch (e) { console.error("focus log failed:", e); }

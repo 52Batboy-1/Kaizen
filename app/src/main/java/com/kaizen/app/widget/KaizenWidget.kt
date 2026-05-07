@@ -36,27 +36,41 @@ private fun sp(v: Float) = androidx.compose.ui.unit.TextUnit(v, androidx.compose
 
 class KaizenTodayWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val db      = KaizenDatabase.getInstance(context)
-        val dao     = db.dao()
-        val prefs   = UserPrefs(context)
-        val date    = LocalDate.now().toString()
-        val today   = LocalDate.now()
-
-        val workouts = dao.allWorkouts()
-        val latestBW = dao.latestBodyweight()
-        val todayLog = workouts.firstOrNull { it.date == date }
-        val sessions = workouts.count {
-            runCatching { ChronoUnit.DAYS.between(LocalDate.parse(it.date), today) <= 30 }.getOrDefault(false)
+        var errorMsg: String? = null
+        var workouts: List<WorkoutLog> = emptyList()
+        var latestBW: com.kaizen.app.data.BodyweightEntry? = null
+        var habits: List<com.kaizen.app.data.HabitWithCompletions> = emptyList()
+        var tier = KaizenTier.FOUNDATION
+        var currentWeek = 1
+        try {
+            val db    = KaizenDatabase.getInstance(context)
+            val dao   = db.dao()
+            val prefs = UserPrefs(context)
+            workouts    = dao.allWorkouts()
+            latestBW    = dao.latestBodyweight()
+            habits      = dao.allHabitsWithCompletions().first()
+            tier        = prefs.currentTier.first()
+            currentWeek = prefs.currentWeek.first()
+        } catch (e: Exception) {
+            errorMsg = e.javaClass.simpleName + ": " + (e.message?.take(80) ?: "?")
         }
 
-        val tier        = prefs.currentTier.first()
-        val currentWeek = prefs.currentWeek.first()
-        val scheduled   = scheduledWorkoutForWidget(today, tier, currentWeek)
-
-        val habits    = dao.allHabitsWithCompletions().first()
+        val date      = LocalDate.now().toString()
+        val today     = LocalDate.now()
+        val todayLog  = workouts.firstOrNull { it.date == date }
+        val sessions  = workouts.count {
+            runCatching { ChronoUnit.DAYS.between(LocalDate.parse(it.date), today) <= 30 }.getOrDefault(false)
+        }
+        val scheduled = scheduledWorkoutForWidget(today, tier, currentWeek)
         val doneToday = habits.count { hwc -> hwc.completions.any { it.date == date } }
 
         provideContent {
+            if (errorMsg != null) {
+                Box(modifier = GlanceModifier.fillMaxSize().background(BG).cornerRadius(20.dp).clickable(actionStartActivity<MainActivity>())) {
+                    Text(errorMsg!!, style = TextStyle(color = ColorProvider(RED), fontSize = sp(10f)), modifier = GlanceModifier.padding(12.dp))
+                }
+                return@provideContent
+            }
             Box(
                 modifier         = GlanceModifier
                     .fillMaxSize()
@@ -138,15 +152,26 @@ class KaizenWidgetReceiver : GlanceAppWidgetReceiver() {
 
 class KaizenStreaksWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val db    = KaizenDatabase.getInstance(context)
-        val dao   = db.dao()
-        val date  = LocalDate.now().toString()
+        var errorMsg: String? = null
+        var habits: List<com.kaizen.app.data.HabitWithCompletions> = emptyList()
+        try {
+            val dao = KaizenDatabase.getInstance(context).dao()
+            habits = dao.allHabitsWithCompletions().first()
+                .sortedByDescending { it.habit.streak }
+                .take(5)
+        } catch (e: Exception) {
+            errorMsg = e.javaClass.simpleName + ": " + (e.message?.take(80) ?: "?")
+        }
 
-        val habits = dao.allHabitsWithCompletions().first()
-            .sortedByDescending { it.habit.streak }
-            .take(5)
+        val date = LocalDate.now().toString()
 
         provideContent {
+            if (errorMsg != null) {
+                Box(modifier = GlanceModifier.fillMaxSize().background(BG).cornerRadius(20.dp).clickable(actionStartActivity<MainActivity>())) {
+                    Text(errorMsg!!, style = TextStyle(color = ColorProvider(RED), fontSize = sp(10f)), modifier = GlanceModifier.padding(12.dp))
+                }
+                return@provideContent
+            }
             Box(
                 modifier         = GlanceModifier
                     .fillMaxSize()
@@ -216,14 +241,24 @@ class KaizenStreaksWidgetReceiver : GlanceAppWidgetReceiver() {
 
 class KaizenWinsWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val db   = KaizenDatabase.getInstance(context)
-        val dao  = db.dao()
-
-        val all     = dao.wins().first()
-        val latestWin    = all.lastOrNull { (it.type == WinType.WIN) }
-        val latestLesson = all.lastOrNull { it.type == WinType.LOSS }
+        var errorMsg: String? = null
+        var latestWin: Win? = null
+        var latestLesson: Win? = null
+        try {
+            val all = KaizenDatabase.getInstance(context).dao().wins().first()
+            latestWin    = all.lastOrNull { it.type == WinType.WIN }
+            latestLesson = all.lastOrNull { it.type == WinType.LOSS }
+        } catch (e: Exception) {
+            errorMsg = e.javaClass.simpleName + ": " + (e.message?.take(80) ?: "?")
+        }
 
         provideContent {
+            if (errorMsg != null) {
+                Box(modifier = GlanceModifier.fillMaxSize().background(BG).cornerRadius(20.dp).clickable(actionStartActivity<MainActivity>())) {
+                    Text(errorMsg!!, style = TextStyle(color = ColorProvider(RED), fontSize = sp(10f)), modifier = GlanceModifier.padding(12.dp))
+                }
+                return@provideContent
+            }
             Box(
                 modifier         = GlanceModifier
                     .fillMaxSize()
@@ -236,50 +271,50 @@ class KaizenWinsWidget : GlanceAppWidget() {
                     modifier = GlanceModifier.fillMaxSize().padding(16.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
+                    // Row 1: header
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("🏆", style = TextStyle(fontSize = sp(15f)))
                         Spacer(GlanceModifier.width(6.dp))
                         Text("Wins & Lessons", style = TextStyle(color = ColorProvider(GOLD), fontSize = sp(15f), fontWeight = FontWeight.Bold))
                     }
-
-                    Spacer(GlanceModifier.height(12.dp))
-
-                    // Latest Win
-                    Text("WIN", style = TextStyle(color = ColorProvider(GREEN), fontSize = sp(8f), fontWeight = FontWeight.Bold))
-                    Spacer(GlanceModifier.height(3.dp))
-                    if (latestWin != null) {
-                        Text(latestWin.title, style = TextStyle(color = ColorProvider(TEXT), fontSize = sp(13f), fontWeight = FontWeight.Bold))
-                        if (latestWin.description.isNotBlank()) {
-                            Spacer(GlanceModifier.height(2.dp))
-                            Text(latestWin.description, style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(10f)))
-                        }
-                        Text(latestWin.date, style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(9f)))
-                    } else {
-                        Text("No wins logged yet", style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(11f)))
-                    }
-
+                    // Row 2: spacer
                     Spacer(GlanceModifier.height(10.dp))
-
-                    // Latest Lesson
-                    Text("LESSON", style = TextStyle(color = ColorProvider(BLUE), fontSize = sp(8f), fontWeight = FontWeight.Bold))
-                    Spacer(GlanceModifier.height(3.dp))
-                    if (latestLesson != null) {
-                        Text(latestLesson.title, style = TextStyle(color = ColorProvider(TEXT), fontSize = sp(13f), fontWeight = FontWeight.Bold))
-                        if (latestLesson.description.isNotBlank()) {
-                            Spacer(GlanceModifier.height(2.dp))
-                            Text(latestLesson.description, style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(10f)))
+                    // Row 3: WIN section (nested column, max 4 children)
+                    Column(modifier = GlanceModifier.fillMaxWidth()) {
+                        Text("WIN", style = TextStyle(color = ColorProvider(GREEN), fontSize = sp(8f), fontWeight = FontWeight.Bold))
+                        if (latestWin != null) {
+                            Text(
+                                "${latestWin.title}  ·  ${latestWin.date}",
+                                style = TextStyle(color = ColorProvider(TEXT), fontSize = sp(12f), fontWeight = FontWeight.Bold),
+                            )
+                            if (latestWin.description.isNotBlank()) {
+                                Text(latestWin.description, style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(10f)))
+                            }
+                        } else {
+                            Text("No wins logged yet", style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(11f)))
                         }
-                        Text(latestLesson.date, style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(9f)))
-                    } else {
-                        Text("No lessons logged yet", style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(11f)))
                     }
-
+                    // Row 4: spacer
+                    Spacer(GlanceModifier.height(8.dp))
+                    // Row 5: LESSON section (nested column, max 4 children)
+                    Column(modifier = GlanceModifier.fillMaxWidth()) {
+                        Text("LESSON", style = TextStyle(color = ColorProvider(BLUE), fontSize = sp(8f), fontWeight = FontWeight.Bold))
+                        if (latestLesson != null) {
+                            Text(
+                                "${latestLesson.title}  ·  ${latestLesson.date}",
+                                style = TextStyle(color = ColorProvider(TEXT), fontSize = sp(12f), fontWeight = FontWeight.Bold),
+                            )
+                            if (latestLesson.description.isNotBlank()) {
+                                Text(latestLesson.description, style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(10f)))
+                            }
+                        } else {
+                            Text("No lessons logged yet", style = TextStyle(color = ColorProvider(MUTED), fontSize = sp(11f)))
+                        }
+                    }
+                    // Row 6: fill weight
                     Spacer(GlanceModifier.defaultWeight())
-
-                    Text(
-                        "+ Log in app →",
-                        style = TextStyle(color = ColorProvider(GOLD), fontSize = sp(10f), fontWeight = FontWeight.Bold),
-                    )
+                    // Row 7: footer
+                    Text("+ Log in app →", style = TextStyle(color = ColorProvider(GOLD), fontSize = sp(10f), fontWeight = FontWeight.Bold))
                 }
             }
         }
@@ -294,21 +329,31 @@ class KaizenWinsWidgetReceiver : GlanceAppWidgetReceiver() {
 
 class KaizenGoalsWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val dao   = KaizenDatabase.getInstance(context).dao()
-        val today = java.time.LocalDate.now()
-
-        val goals = dao.goals().first()
-            .filter { it.status == com.kaizen.app.data.GoalStatus.ACTIVE && it.targetDate.isNotBlank() }
-            .mapNotNull { g ->
-                runCatching {
-                    val days = java.time.temporal.ChronoUnit.DAYS.between(today, java.time.LocalDate.parse(g.targetDate)).toInt()
-                    if (days >= 0) g to days else null
-                }.getOrNull()
-            }
-            .sortedBy { it.second }
-            .take(4)
+        var errorMsg: String? = null
+        var goals: List<Pair<com.kaizen.app.data.Goal, Int>> = emptyList()
+        try {
+            val today = java.time.LocalDate.now()
+            goals = KaizenDatabase.getInstance(context).dao().goals().first()
+                .filter { it.status == com.kaizen.app.data.GoalStatus.ACTIVE && it.targetDate.isNotBlank() }
+                .mapNotNull { g ->
+                    runCatching {
+                        val days = java.time.temporal.ChronoUnit.DAYS.between(today, java.time.LocalDate.parse(g.targetDate)).toInt()
+                        if (days >= 0) g to days else null
+                    }.getOrNull()
+                }
+                .sortedBy { it.second }
+                .take(4)
+        } catch (e: Exception) {
+            errorMsg = e.javaClass.simpleName + ": " + (e.message?.take(80) ?: "?")
+        }
 
         provideContent {
+            if (errorMsg != null) {
+                Box(modifier = GlanceModifier.fillMaxSize().background(BG).cornerRadius(20.dp).clickable(actionStartActivity<MainActivity>())) {
+                    Text(errorMsg!!, style = TextStyle(color = ColorProvider(RED), fontSize = sp(10f)), modifier = GlanceModifier.padding(12.dp))
+                }
+                return@provideContent
+            }
             Box(
                 modifier         = GlanceModifier
                     .fillMaxSize()

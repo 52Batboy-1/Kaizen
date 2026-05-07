@@ -4,6 +4,7 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import com.kaizen.app.notifications.ReminderScheduler
+import com.kaizen.app.widget.WidgetUpdateWorker
 
 class KaizenApplication : Application() {
     override fun onCreate() {
@@ -21,5 +22,6 @@ class KaizenApplication : Application() {
         )
 
         ReminderScheduler.schedule(this)
+        WidgetUpdateWorker.schedule(this)
     }
 }
