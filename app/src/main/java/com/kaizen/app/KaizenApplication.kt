@@ -35,6 +35,9 @@ class KaizenApplication : Application() {
                     refreshToken = null,
                     apiKey       = BuildConfig.OW_API_KEY,
                 )
+                ow.requestAuthorization(
+                    listOf("steps", "restingHeartRate", "heartRateVariabilitySDNN", "sleep")
+                )
             }
         }
 

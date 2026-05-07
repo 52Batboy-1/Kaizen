@@ -38,6 +38,7 @@ android {
         buildConfigField("String", "ANTHROPIC_API_KEY",        "\"$apiKey\"")
         buildConfigField("String", "OW_API_KEY",               "\"$owApiKey\"")
         buildConfigField("String", "OW_BASE_URL",              "\"$owBaseUrl\"")
+        buildConfigField("String", "OW_USER_ID",               "\"${localProp("OW_USER_ID")}\"")
         buildConfigField("String", "SUPABASE_URL",             "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_ANON_KEY",        "\"$supabaseAnon\"")
         buildConfigField("String", "GARMIN_CONSUMER_KEY",    "\"$garminConsumerKey\"")

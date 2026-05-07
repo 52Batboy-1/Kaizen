@@ -55,9 +55,10 @@ class MainActivity : ComponentActivity() {
         val repo         = KaizenRepository(db.dao())
         val prefs        = UserPrefs(this)
         val healthConnect = HealthConnectManager(this)
+        val owClient     = OWHealthClient()
         setContent {
             KaizenTheme {
-                KaizenApp(repo = repo, prefs = prefs, healthConnect = healthConnect, initialTab = _requestedTab.value)
+                KaizenApp(repo = repo, prefs = prefs, healthConnect = healthConnect, owClient = owClient, initialTab = _requestedTab.value)
             }
         }
 
@@ -98,8 +99,8 @@ internal enum class Tab(val label: String, val icon: String) {
 }
 
 @Composable
-internal fun KaizenApp(repo: KaizenRepository, prefs: UserPrefs, healthConnect: HealthConnectManager, initialTab: Tab = Tab.TODAY) {
-    val vm: KaizenViewModel = viewModel(factory = KaizenViewModelFactory(repo, prefs, healthConnect))
+internal fun KaizenApp(repo: KaizenRepository, prefs: UserPrefs, healthConnect: HealthConnectManager, owClient: OWHealthClient, initialTab: Tab = Tab.TODAY) {
+    val vm: KaizenViewModel = viewModel(factory = KaizenViewModelFactory(repo, prefs, healthConnect, owClient))
 
     val garminPermLauncher = rememberLauncherForActivityResult(
         PermissionController.createRequestPermissionResultContract()

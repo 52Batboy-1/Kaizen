@@ -118,6 +118,7 @@ class KaizenViewModel(
     private val repo: KaizenRepository,
     private val prefs: UserPrefs,
     private val hcm: HealthConnectManager,
+    private val owClient: OWHealthClient,
 ) : ViewModel() {
 
     private val _state       = MutableStateFlow(KaizenUiState())
@@ -376,7 +377,7 @@ class KaizenViewModel(
                 return@launch
             }
             _state.update { it.copy(isLoadingGarmin = true, garminConnected = true) }
-            val data  = hcm.readTodayData()
+            val data  = owClient.readTodayData()
             val today = LocalDate.now().toString()
             val cur   = repo.garminEntryOnce(today) ?: GarminEntry(date = today)
             repo.saveGarminEntry(cur.copy(
@@ -469,7 +470,8 @@ class KaizenViewModelFactory(
     private val repo: KaizenRepository,
     private val prefs: UserPrefs,
     private val hcm: HealthConnectManager,
+    private val owClient: OWHealthClient,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>) = KaizenViewModel(repo, prefs, hcm) as T
+    override fun <T : ViewModel> create(modelClass: Class<T>) = KaizenViewModel(repo, prefs, hcm, owClient) as T
 }
